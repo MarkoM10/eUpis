@@ -1,21 +1,32 @@
-import { httpClient, type ApiSuccess } from "./httpClient";
+import type { ApiSuccess } from "../types/api/common";
+import type {
+  AuthSessionResponse,
+  LoginRequest,
+  LoginResponse,
+  RegisterRequest,
+} from "../types/models/auth";
+import { httpClient } from "./httpClient";
 
-export interface LoginRequest {
-  username: string;
-  password: string;
-}
+export const loginRequest = async (payload: LoginRequest): Promise<ApiSuccess<LoginResponse>> => {
+  const response = await httpClient.post<ApiSuccess<LoginResponse>>("/auth/login", payload);
 
-export interface LoginResponse {
-  token: string;
-}
+  return response.data;
+};
 
-export const loginRequest = async (
-  payload: LoginRequest,
+export const registerRequest = async (
+  payload: RegisterRequest,
 ): Promise<ApiSuccess<LoginResponse>> => {
-  const response = await httpClient.post<ApiSuccess<LoginResponse>>(
-    "/auth/login",
-    payload,
-  );
+  const response = await httpClient.post<ApiSuccess<LoginResponse>>("/auth/register", payload);
+
+  return response.data;
+};
+
+export const sessionRequest = async (token: string): Promise<ApiSuccess<AuthSessionResponse>> => {
+  const response = await httpClient.get<ApiSuccess<AuthSessionResponse>>("/auth/me", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
   return response.data;
 };

@@ -1,0 +1,196 @@
+import { executeSql } from "../../db/oracle/execute";
+import { ApiError } from "../../shared/apiError";
+import type { AuthLatestPrijava, KorisnikRecord, UserRole } from "../../types/modules/auth";
+
+type KorisnikRow = {
+  ID_KORISNIKA: number;
+  KORISNICKO_IME: string;
+  LOZINKA: string;
+  EMAIL: string | null;
+  ULOGA: string | null;
+};
+
+type PrijavaRow = {
+  BROJ_PRIJAVE: number;
+  DATUM_PRIJAVE: Date | null;
+  SKOLSKA_GODINA: string;
+  STATUS_PRIJAVE: string | null;
+  KONKURSNI_ROK: string | null;
+  JMBG: string | null;
+  IME_PREZIME: string | null;
+  SISTEMSKI_UPDATE: string | null;
+};
+
+const resolveRole = (value: string | null): UserRole => {
+  const normalized = (value ?? "student").trim().toLowerCase();
+
+  if (normalized === "admin") {
+    return "admin";
+  }
+
+  if (normalized === "student") {
+    return "student";
+  }
+
+  throw new ApiError(403, "Uloga korisnika nije podrzana", `Nepoznata uloga: ${value ?? "NULL"}.`);
+};
+
+const mapKorisnik = (row: KorisnikRow): KorisnikRecord => ({
+  idKorisnika: row.ID_KORISNIKA,
+  korisnickoIme: row.KORISNICKO_IME,
+  lozinka: row.LOZINKA,
+  email: row.EMAIL,
+  role: resolveRole(row.ULOGA),
+});
+
+const mapPrijava = (row: PrijavaRow): AuthLatestPrijava => ({
+  brojPrijave: row.BROJ_PRIJAVE,
+  datumPrijave: row.DATUM_PRIJAVE ? row.DATUM_PRIJAVE.toISOString() : null,
+  skolskaGodina: row.SKOLSKA_GODINA,
+  statusPrijave: row.STATUS_PRIJAVE,
+  konkursniRok: row.KONKURSNI_ROK,
+  jmbg: row.JMBG,
+  imePrezime: row.IME_PREZIME,
+  sistemskiUpdate: row.SISTEMSKI_UPDATE,
+});
+
+const latestPrijavaSql = `
+  SELECT
+    p.broj_prijave,
+    p.datum_prijave,
+    p.skolska_godina,
+    p.status_prijave,
+    p.konkursni_rok,
+    p.jmbg,
+    p.ime_prezime,
+    p.sistemski_update
+  FROM Prijava p
+  LEFT JOIN Kandidat k ON k.jmbg = p.jmbg
+  WHERE p.jmbg = :korisnickoIme
+     OR (
+       :email IS NOT NULL
+       AND LOWER(k.email.get_vrednost()) = LOWER(:email)
+     )
+  ORDER BY p.datum_prijave DESC NULLS LAST, p.broj_prijave DESC
+  FETCH FIRST 1 ROWS ONLY
+`;
+
+export const findKorisnikByUsername = async (username: string): Promise<KorisnikRecord | null> => {
+  const result = await executeSql<KorisnikRow>(
+    `
+      SELECT
+        k.id_korisnika,
+        k.korisnicko_ime,
+        k.lozinka,
+        k.email,
+        k.uloga
+      FROM Korisnici k
+      WHERE LOWER(k.korisnicko_ime) = LOWER(:username)
+      FETCH FIRST 1 ROWS ONLY
+    `,
+    { username },
+  );
+
+  const row = result.rows?.[0];
+  return row ? mapKorisnik(row) : null;
+};
+
+export const findKorisnikByEmail = async (email: string): Promise<KorisnikRecord | null> => {
+  const result = await executeSql<KorisnikRow>(
+    `
+      SELECT
+        k.id_korisnika,
+        k.korisnicko_ime,
+        k.lozinka,
+        k.email,
+        k.uloga
+      FROM Korisnici k
+      WHERE LOWER(k.email) = LOWER(:email)
+      FETCH FIRST 1 ROWS ONLY
+    `,
+    { email },
+  );
+
+  const row = result.rows?.[0];
+  return row ? mapKorisnik(row) : null;
+};
+
+const getNextKorisnikId = async (): Promise<number> => {
+  const result = await executeSql<{ NEXT_ID: number }>(
+    "SELECT NVL(MAX(k.id_korisnika), 0) + 1 AS next_id FROM Korisnici k",
+  );
+
+  return result.rows?.[0]?.NEXT_ID ?? 1;
+};
+
+export const insertKorisnik = async (input: {
+  korisnickoIme: string;
+  lozinka: string;
+  email: string;
+  role: UserRole;
+}): Promise<KorisnikRecord> => {
+  const idKorisnika = await getNextKorisnikId();
+  const dbRole = input.role.toUpperCase();
+
+  await executeSql(
+    `
+      INSERT INTO Korisnici (
+        id_korisnika,
+        korisnicko_ime,
+        lozinka,
+        email,
+        uloga,
+        datum_kreiranja,
+        poslednja_prijava
+      )
+      VALUES (
+        :idKorisnika,
+        :korisnickoIme,
+        :lozinka,
+        :email,
+        :uloga,
+        SYSDATE,
+        NULL
+      )
+    `,
+    {
+      idKorisnika,
+      korisnickoIme: input.korisnickoIme,
+      lozinka: input.lozinka,
+      email: input.email,
+      uloga: dbRole,
+    },
+  );
+
+  return {
+    idKorisnika,
+    korisnickoIme: input.korisnickoIme,
+    lozinka: input.lozinka,
+    email: input.email,
+    role: input.role,
+  };
+};
+
+export const updateKorisnikLastLogin = async (idKorisnika: number): Promise<void> => {
+  await executeSql(
+    `
+      UPDATE Korisnici
+      SET poslednja_prijava = SYSDATE
+      WHERE id_korisnika = :idKorisnika
+    `,
+    { idKorisnika },
+  );
+};
+
+export const findLatestPrijavaForKorisnik = async (
+  korisnickoIme: string,
+  email: string | null,
+): Promise<AuthLatestPrijava | null> => {
+  const result = await executeSql<PrijavaRow>(latestPrijavaSql, {
+    korisnickoIme,
+    email,
+  });
+
+  const row = result.rows?.[0];
+  return row ? mapPrijava(row) : null;
+};

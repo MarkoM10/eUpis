@@ -2,16 +2,9 @@ import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 import { ApiError } from "../shared/apiError";
+import type { JwtPayload } from "../types/modules/auth";
 
-interface TokenPayload {
-  username: string;
-}
-
-export const authMiddleware = (
-  req: Request,
-  _res: Response,
-  next: NextFunction,
-): void => {
+export const authMiddleware = (req: Request, _res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith("Bearer ")) {
@@ -22,8 +15,8 @@ export const authMiddleware = (
   const token = authHeader.replace("Bearer ", "");
 
   try {
-    const payload = jwt.verify(token, env.jwtSecret) as TokenPayload;
-    req.user = { username: payload.username };
+    const payload = jwt.verify(token, env.jwtSecret) as JwtPayload;
+    req.user = { userId: payload.userId, username: payload.username, role: payload.role };
     next();
   } catch {
     next(new ApiError(401, "Autentikacija", "Token nije validan."));

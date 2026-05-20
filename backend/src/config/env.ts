@@ -24,8 +24,6 @@ export const env = {
   port: toNumber(process.env.PORT, 4000),
   jwtSecret: requiredEnv("JWT_SECRET"),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "8h",
-  adminUsername: requiredEnv("ADMIN_USERNAME"),
-  adminPassword: requiredEnv("ADMIN_PASSWORD"),
   oracleUser: requiredEnv("ORACLE_USER"),
   oraclePassword: requiredEnv("ORACLE_PASSWORD"),
   oracleConnectString: requiredEnv("ORACLE_CONNECT_STRING"),

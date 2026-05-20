@@ -4,6 +4,12 @@ export interface ApiSuccess<T> {
   data: T;
 }
 
+export interface ListPayload<T> {
+  rows: T[];
+  page: number;
+  pageSize: number;
+}
+
 export interface ApiError {
   success: false;
   title: string;
@@ -15,6 +21,21 @@ export const ok = <T>(message: string, data: T): ApiSuccess<T> => ({
   success: true,
   message,
   data,
+});
+
+export const okList = <T>(
+  message: string,
+  rows: T[],
+  page: number,
+  pageSize: number,
+): ApiSuccess<ListPayload<T>> => ({
+  success: true,
+  message,
+  data: {
+    rows,
+    page,
+    pageSize,
+  },
 });
 
 export const fail = (
