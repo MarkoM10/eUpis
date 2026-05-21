@@ -65,12 +65,7 @@ const latestPrijavaSql = `
     p.ime_prezime,
     p.sistemski_update
   FROM Prijava p
-  LEFT JOIN Kandidat k ON k.jmbg = p.jmbg
-  WHERE p.jmbg = :korisnickoIme
-     OR (
-       :email IS NOT NULL
-       AND LOWER(k.email.get_vrednost()) = LOWER(:email)
-     )
+  WHERE p.id_korisnika = :idKorisnika
   ORDER BY p.datum_prijave DESC NULLS LAST, p.broj_prijave DESC
   FETCH FIRST 1 ROWS ONLY
 `;
@@ -183,12 +178,10 @@ export const updateKorisnikLastLogin = async (idKorisnika: number): Promise<void
 };
 
 export const findLatestPrijavaForKorisnik = async (
-  korisnickoIme: string,
-  email: string | null,
+  idKorisnika: number,
 ): Promise<AuthLatestPrijava | null> => {
   const result = await executeSql<PrijavaRow>(latestPrijavaSql, {
-    korisnickoIme,
-    email,
+    idKorisnika,
   });
 
   const row = result.rows?.[0];

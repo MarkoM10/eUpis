@@ -12,6 +12,8 @@ type PrijavaRow = {
   BROJ_PRIJAVE: number;
   DATUM_PRIJAVE: Date | null;
   SKOLSKA_GODINA: string;
+  ID_KORISNIKA: number | null;
+  ID_PROGRAMA: number | null;
   STATUS_PRIJAVE: string | null;
   KONKURSNI_ROK: string | null;
   JMBG: string | null;
@@ -24,6 +26,8 @@ const baseSelect = `
     p.broj_prijave,
     p.datum_prijave,
     p.skolska_godina,
+    p.id_korisnika,
+    p.id_programa,
     p.status_prijave,
     p.konkursni_rok,
     p.jmbg,
@@ -36,6 +40,8 @@ const mapRow = (row: PrijavaRow): PrijavaRecord => ({
   brojPrijave: row.BROJ_PRIJAVE,
   datumPrijave: row.DATUM_PRIJAVE ? row.DATUM_PRIJAVE.toISOString() : null,
   skolskaGodina: row.SKOLSKA_GODINA,
+  idKorisnika: row.ID_KORISNIKA,
+  idPrograma: row.ID_PROGRAMA,
   statusPrijave: row.STATUS_PRIJAVE,
   konkursniRok: row.KONKURSNI_ROK,
   jmbg: row.JMBG,
@@ -134,6 +140,8 @@ export const insertPrijava = async (input: PrijavaMutationInput): Promise<Prijav
         broj_prijave,
         datum_prijave,
         skolska_godina,
+        id_korisnika,
+        id_programa,
         status_prijave,
         konkursni_rok,
         jmbg,
@@ -144,6 +152,8 @@ export const insertPrijava = async (input: PrijavaMutationInput): Promise<Prijav
         :brojPrijave,
         TO_DATE(:datumPrijave, 'YYYY-MM-DD'),
         :skolskaGodina,
+        :idKorisnika,
+        :idPrograma,
         :statusPrijave,
         :konkursniRok,
         :jmbg,
@@ -155,6 +165,8 @@ export const insertPrijava = async (input: PrijavaMutationInput): Promise<Prijav
       brojPrijave,
       datumPrijave: input.datumPrijave,
       skolskaGodina: input.skolskaGodina,
+      idKorisnika: input.idKorisnika ?? null,
+      idPrograma: input.idPrograma,
       statusPrijave: input.statusPrijave,
       konkursniRok: input.konkursniRok,
       jmbg: input.jmbg,
@@ -178,6 +190,7 @@ export const updatePrijava = async (
       UPDATE Prijava
       SET
         datum_prijave = TO_DATE(:datumPrijave, 'YYYY-MM-DD'),
+        id_programa = :idPrograma,
         status_prijave = :statusPrijave,
         konkursni_rok = :konkursniRok,
         jmbg = :jmbg,
@@ -190,6 +203,7 @@ export const updatePrijava = async (
       brojPrijave: key.brojPrijave,
       skolskaGodina: key.skolskaGodina,
       datumPrijave: input.datumPrijave,
+      idPrograma: input.idPrograma,
       statusPrijave: input.statusPrijave,
       konkursniRok: input.konkursniRok,
       jmbg: input.jmbg,

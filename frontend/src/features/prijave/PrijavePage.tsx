@@ -6,6 +6,7 @@ import { DataTable } from "../../components/ui/DataTable";
 import { FilterBar } from "../../components/ui/FilterBar";
 import { sessionRequest } from "../../services/authService";
 import { toApiClientError } from "../../services/httpClient";
+import { listStudyProgramsRequest } from "../../services/upisService";
 import {
   createPrijavaRequest,
   downloadPrijavaDocumentRequest,
@@ -21,6 +22,7 @@ import type {
 import type { PrijavaFormState } from "../../types/forms/prijavaForm";
 import type { PrijavaDocumentsRecord } from "../../types/models/prijavaDocument";
 import type { Prijava, PrijavaPayload } from "../../types/models/prijava";
+import type { StudyProgramOption } from "../../types/models/upis";
 import { useAuth } from "../auth/authStore";
 import {
   clearPrijaveError,
@@ -43,7 +45,8 @@ const createEmptyPrijavaForm = (isAdmin: boolean): PrijavaFormState => ({
   brojPrijave: "",
   datumPrijave: todayValue,
   skolskaGodina: "",
-  statusPrijave: isAdmin ? "" : "Submitted",
+  idPrograma: "",
+  statusPrijave: isAdmin ? "" : "Podneta",
   konkursniRok: "",
   jmbg: "",
   imePrezime: "",
@@ -112,7 +115,8 @@ const toPayload = (form: PrijavaFormState, isAdmin: boolean): PrijavaPayload => 
   brojPrijave: form.brojPrijave ? Number(form.brojPrijave) : null,
   datumPrijave: form.datumPrijave || null,
   skolskaGodina: form.skolskaGodina,
-  statusPrijave: isAdmin ? form.statusPrijave || null : "Submitted",
+  idPrograma: form.idPrograma ? Number(form.idPrograma) : null,
+  statusPrijave: isAdmin ? form.statusPrijave || null : "Podneta",
   konkursniRok: form.konkursniRok || null,
   jmbg: form.jmbg || null,
   imePrezime: form.imePrezime || null,
@@ -148,7 +152,7 @@ const toUverenjeForm = (
 
 export default function PrijavePage(): ReactElement {
   const dispatch = useAppDispatch();
-  const { token, username, role, updateSession } = useAuth();
+  const { token, username, role, updateSession, logout } = useAuth();
   const isAdmin = role === "admin";
   const {
     rows,
@@ -174,6 +178,7 @@ export default function PrijavePage(): ReactElement {
     Record<string, { diplomaHasFile: boolean; uverenjeHasFile: boolean; isLoading: boolean }>
   >({});
   const [adminStatusByKey, setAdminStatusByKey] = useState<Record<string, string>>({});
+  const [studyPrograms, setStudyPrograms] = useState<StudyProgramOption[]>([]);
   const [savingStatusKey, setSavingStatusKey] = useState<string | null>(null);
   const [downloadingDocumentKey, setDownloadingDocumentKey] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -222,6 +227,19 @@ export default function PrijavePage(): ReactElement {
 
   const refreshFakulteti = async (): Promise<void> => {
     await dispatch(loadFakulteti());
+  };
+
+  const loadStudyPrograms = async (): Promise<void> => {
+    if (!token) {
+      return;
+    }
+
+    try {
+      const response = await listStudyProgramsRequest(token);
+      setStudyPrograms(response.data.rows);
+    } catch {
+      setStudyPrograms([]);
+    }
   };
 
   const loadDocuments = async (key: ActivePrijavaKey): Promise<void> => {
@@ -288,12 +306,13 @@ export default function PrijavePage(): ReactElement {
 
   useEffect(() => {
     void refreshFakulteti();
+    void loadStudyPrograms();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   useEffect(() => {
-    if (!isAdmin && form.statusPrijave !== "Submitted") {
-      setForm((prev) => ({ ...prev, statusPrijave: "Submitted" }));
+    if (!isAdmin && form.statusPrijave !== "Podneta") {
+      setForm((prev) => ({ ...prev, statusPrijave: "Podneta" }));
     }
   }, [form.statusPrijave, isAdmin]);
 
@@ -307,7 +326,7 @@ export default function PrijavePage(): ReactElement {
     }
 
     const initialStatusMap = rows.reduce<Record<string, string>>((acc, row) => {
-      acc[getRowKey(row.brojPrijave, row.skolskaGodina)] = row.statusPrijave ?? "Submitted";
+      acc[getRowKey(row.brojPrijave, row.skolskaGodina)] = row.statusPrijave ?? "Podneta";
       return acc;
     }, {});
     setAdminStatusByKey(initialStatusMap);
@@ -387,13 +406,13 @@ export default function PrijavePage(): ReactElement {
     }
 
     const key = getRowKey(row.brojPrijave, row.skolskaGodina);
-    const nextStatus = adminStatusByKey[key] ?? row.statusPrijave ?? "Submitted";
+    const nextStatus = adminStatusByKey[key] ?? row.statusPrijave ?? "Podneta";
 
     clearFeedback();
     setSavingStatusKey(key);
 
     try {
-      if (nextStatus !== "Submitted" && nextStatus !== "Eligible" && nextStatus !== "Rejected") {
+      if (nextStatus !== "Podneta" && nextStatus !== "Odobrena" && nextStatus !== "Odbijena") {
         setLocalErrorMessage("Neispravan status prijave.");
         return;
       }
@@ -467,6 +486,7 @@ export default function PrijavePage(): ReactElement {
       if (!form.skolskaGodina.trim()) missingFields.push("Skolska godina");
       if (!form.datumPrijave.trim()) missingFields.push("Datum prijave");
       if (!form.konkursniRok.trim()) missingFields.push("Konkursni rok");
+      if (!form.idPrograma.trim()) missingFields.push("Studijski program i modul");
     }
 
     if (!diplomaForm.datumIzdavanja.trim()) missingFields.push("Diploma - datum izdavanja");
@@ -513,7 +533,8 @@ export default function PrijavePage(): ReactElement {
           brojPrijave: response.data.brojPrijave,
           datumPrijave: payload.datumPrijave,
           skolskaGodina: response.data.skolskaGodina,
-          statusPrijave: "Submitted",
+          idPrograma: payload.idPrograma,
+          statusPrijave: "Podneta",
           konkursniRok: payload.konkursniRok,
           jmbg: payload.jmbg,
           imePrezime: payload.imePrezime,
@@ -580,13 +601,37 @@ export default function PrijavePage(): ReactElement {
             </p>
           </div>
           {isAdmin ? (
-            <Link
-              to="/dashboard"
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
-            >
-              Nazad na kontrolnu tablu
-            </Link>
-          ) : null}
+            <div className="flex gap-2">
+              <Link
+                to="/upis"
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+              >
+                Modul upis
+              </Link>
+              <Link
+                to="/dashboard"
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+              >
+                Nazad na kontrolnu tablu
+              </Link>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Link
+                to="/upis"
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+              >
+                Status upisa
+              </Link>
+              <button
+                type="button"
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+                onClick={logout}
+              >
+                Odjavi se
+              </button>
+            </div>
+          )}
         </header>
 
         {!isAdmin && isCheckingExistingPrijava ? (
@@ -672,6 +717,19 @@ export default function PrijavePage(): ReactElement {
                 onChange={(event) => onFormChange("skolskaGodina", event.target.value)}
                 disabled={Boolean(existingStudentPrijava)}
               />
+              <select
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                value={form.idPrograma}
+                onChange={(event) => onFormChange("idPrograma", event.target.value)}
+                disabled={Boolean(existingStudentPrijava)}
+              >
+                <option value="">Izaberite program i modul</option>
+                {studyPrograms.map((program) => (
+                  <option key={program.idPrograma} value={String(program.idPrograma)}>
+                    {program.nazivPrograma} | {program.modul}
+                  </option>
+                ))}
+              </select>
               <input
                 type="date"
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
@@ -690,13 +748,6 @@ export default function PrijavePage(): ReactElement {
                 <option value="August">Avgust</option>
                 <option value="September">Septembar</option>
               </select>
-              <input
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                placeholder="Status prijave"
-                value={form.statusPrijave}
-                onChange={(event) => onFormChange("statusPrijave", event.target.value)}
-                disabled
-              />
             </div>
 
             <div className="mt-4 flex flex-wrap gap-3">
@@ -888,9 +939,9 @@ export default function PrijavePage(): ReactElement {
               onStatusChange={(value) => dispatch(setPrijavaStatusFilter(value))}
               statusOptions={[
                 { value: "svi", label: "Status: svi" },
-                { value: "Submitted", label: "Submitted" },
-                { value: "Eligible", label: "Eligible" },
-                { value: "Rejected", label: "Rejected" },
+                { value: "Podneta", label: "Podneta" },
+                { value: "Odobrena", label: "Odobrena" },
+                { value: "Odbijena", label: "Odbijena" },
               ]}
             />
             <div className="flex justify-end">
@@ -949,7 +1000,7 @@ export default function PrijavePage(): ReactElement {
                   header: "Status",
                   render: (row) => {
                     const key = getRowKey(row.brojPrijave, row.skolskaGodina);
-                    const value = adminStatusByKey[key] ?? row.statusPrijave ?? "Submitted";
+                    const value = adminStatusByKey[key] ?? row.statusPrijave ?? "Podneta";
 
                     return (
                       <select
@@ -962,9 +1013,9 @@ export default function PrijavePage(): ReactElement {
                           }));
                         }}
                       >
-                        <option value="Submitted">Submitted</option>
-                        <option value="Eligible">Eligible</option>
-                        <option value="Rejected">Rejected</option>
+                        <option value="Podneta">Podneta</option>
+                        <option value="Odobrena">Odobrena</option>
+                        <option value="Odbijena">Odbijena</option>
                       </select>
                     );
                   },
@@ -977,7 +1028,7 @@ export default function PrijavePage(): ReactElement {
                   render: (row) =>
                     (() => {
                       const key = getRowKey(row.brojPrijave, row.skolskaGodina);
-                      const currentStatus = row.statusPrijave ?? "Submitted";
+                      const currentStatus = row.statusPrijave ?? "Podneta";
                       const selectedStatus = adminStatusByKey[key] ?? currentStatus;
                       const hasStatusChanged = selectedStatus !== currentStatus;
 

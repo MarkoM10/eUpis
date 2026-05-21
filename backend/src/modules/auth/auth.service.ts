@@ -49,9 +49,7 @@ const buildLoginResult = async (username: string, roleFromToken?: "admin" | "stu
 
   const role = roleFromToken ?? korisnik.role;
   const latestPrijava =
-    role === "student"
-      ? await findLatestPrijavaForKorisnik(korisnik.korisnickoIme, korisnik.email)
-      : null;
+    role === "student" ? await findLatestPrijavaForKorisnik(korisnik.idKorisnika) : null;
 
   return {
     username: korisnik.korisnickoIme,

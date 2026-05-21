@@ -20,11 +20,11 @@ const formatDate = (value: string | null): string => {
 const statusClassName = (status: string | null): string => {
   const normalized = (status ?? "").toLowerCase();
 
-  if (normalized === "eligible") {
+  if (normalized === "odobrena") {
     return "bg-emerald-100 text-emerald-800";
   }
 
-  if (normalized === "rejected") {
+  if (normalized === "odbijena") {
     return "bg-red-100 text-red-800";
   }
 
@@ -54,7 +54,7 @@ export default function StudentPrijavaSummaryCard({
             prijava.statusPrijave,
           )}`}
         >
-          Status: {prijava.statusPrijave ?? "Submitted"}
+          Status: {prijava.statusPrijave ?? "Podneta"}
         </span>
       </div>
 

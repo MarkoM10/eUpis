@@ -2,6 +2,8 @@ export interface PrijavaRecord {
   brojPrijave: number;
   datumPrijave: string | null;
   skolskaGodina: string;
+  idKorisnika: number | null;
+  idPrograma: number | null;
   statusPrijave: string | null;
   konkursniRok: string | null;
   jmbg: string | null;
@@ -20,6 +22,8 @@ export interface PrijavaMutationInput {
   brojPrijave?: number | null;
   datumPrijave: string | null;
   skolskaGodina: string;
+  idKorisnika?: number | null;
+  idPrograma: number | null;
   statusPrijave: string | null;
   konkursniRok: string | null;
   jmbg: string | null;

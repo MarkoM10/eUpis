@@ -61,7 +61,11 @@ export const createPrijavaHandler = async (
 ): Promise<void> => {
   try {
     const role = req.user?.role ?? "admin";
-    const created = await createPrijavaService(req.body as PrijavaMutationInput, role);
+    const created = await createPrijavaService(
+      req.body as PrijavaMutationInput,
+      role,
+      req.user?.userId,
+    );
     res.status(201).json(ok("Prijava je uspesno dodata.", { created: true, ...created }));
   } catch (error) {
     next(error);

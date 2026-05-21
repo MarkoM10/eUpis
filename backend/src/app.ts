@@ -9,6 +9,7 @@ import { executeSql } from "./db/oracle/execute";
 import { parseListQuery } from "./shared/query";
 import { kandidatiRouter } from "./modules/kandidati/kandidati.routes";
 import { prijaveRouter } from "./modules/prijave/prijave.routes";
+import { upisRouter } from "./modules/upis/upis.routes";
 
 const app = express();
 
@@ -62,6 +63,7 @@ app.get("/api/meta/fakulteti", authMiddleware, async (_req, res, next) => {
 app.use("/api/auth", authRouter);
 app.use("/api/kandidati", kandidatiRouter);
 app.use("/api/prijave", prijaveRouter);
+app.use("/api/upis", upisRouter);
 
 app.use(errorMiddleware);
 

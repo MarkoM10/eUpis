@@ -4,6 +4,7 @@ import { ProtectedRoute } from "../features/auth/ProtectedRoute.tsx";
 import DashboardPage from "../features/dashboard/DashboardPage.tsx";
 import KandidatiPage from "../features/kandidati/KandidatiPage.tsx";
 import PrijavePage from "../features/prijave/PrijavePage.tsx";
+import UpisPage from "../features/upis/UpisPage.tsx";
 
 export const router = createBrowserRouter([
   {
@@ -35,6 +36,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute allowedRoles={["admin", "student"]}>
         <PrijavePage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/upis",
+    element: (
+      <ProtectedRoute allowedRoles={["admin", "student"]}>
+        <UpisPage />
       </ProtectedRoute>
     ),
   },

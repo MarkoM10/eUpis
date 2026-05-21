@@ -178,7 +178,7 @@ export const updatePrijavaStatusRequest = async (
   token: string,
   brojPrijave: number,
   skolskaGodina: string,
-  statusPrijave: "Submitted" | "Eligible" | "Rejected",
+  statusPrijave: "Podneta" | "Odobrena" | "Odbijena",
 ): Promise<ApiSuccess<{ updated: true }>> => {
   const response = await httpClient.put<ApiSuccess<{ updated: true }>>(
     `${buildPrijavaPath(brojPrijave, skolskaGodina)}/status`,

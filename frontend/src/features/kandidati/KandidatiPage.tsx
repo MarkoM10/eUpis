@@ -151,7 +151,7 @@ export default function KandidatiPage(): ReactElement {
 
   return (
     <main className="min-h-screen bg-slate-100 p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
+      <div className="mx-auto max-w-7xl w-10/12 space-y-6">
         <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-300 bg-white p-6">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Kandidati</h1>

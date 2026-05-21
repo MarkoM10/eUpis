@@ -40,6 +40,9 @@ const ensureRequiredStudentFields = (payload: PrijavaMutationInput): void => {
   if (!payload.imePrezime) {
     missingFields.push("imePrezime");
   }
+  if (!payload.idPrograma) {
+    missingFields.push("idPrograma");
+  }
   if (!payload.kandidat?.emailVrednost) {
     missingFields.push("kandidat.emailVrednost");
   }
@@ -119,17 +122,39 @@ const ensureKandidatExists = async (jmbg: string | null): Promise<void> => {
   }
 };
 
+const ensureProgramSelected = (idPrograma: number | null): void => {
+  if (!idPrograma || !Number.isFinite(idPrograma) || idPrograma <= 0) {
+    throw new ApiError(
+      400,
+      "Nedostaje studijski program",
+      "Za prijavu je obavezno izabrati studijski program i modul.",
+    );
+  }
+};
+
 export const createPrijavaService = async (
   payload: PrijavaMutationInput,
   actorRole: UserRole,
+  actorUserId?: number,
 ): Promise<PrijavaKey> => {
+  ensureProgramSelected(payload.idPrograma);
+
+  const payloadWithOwner: PrijavaMutationInput = {
+    ...payload,
+    idKorisnika: actorRole === "student" ? (actorUserId ?? null) : (payload.idKorisnika ?? null),
+  };
+
   if (actorRole === "student") {
-    await ensureStudentKandidatFromPrijava(payload);
+    if (!actorUserId) {
+      throw new ApiError(401, "Autentikacija", "Korisnik nije autentifikovan.");
+    }
+
+    await ensureStudentKandidatFromPrijava(payloadWithOwner);
   } else {
-    await ensureKandidatExists(payload.jmbg ?? null);
+    await ensureKandidatExists(payloadWithOwner.jmbg ?? null);
   }
 
-  return insertPrijava(payload);
+  return insertPrijava(payloadWithOwner);
 };
 
 export const updatePrijavaService = async (
@@ -143,13 +168,13 @@ export const updatePrijavaStatusService = async (
   key: PrijavaKey,
   payload: PrijavaStatusUpdateInput,
 ): Promise<void> => {
-  const allowedStatuses = new Set(["Submitted", "Eligible", "Rejected"]);
+  const allowedStatuses = new Set(["Podneta", "Odobrena", "Odbijena"]);
 
   if (!payload.statusPrijave || !allowedStatuses.has(payload.statusPrijave)) {
     throw new ApiError(
       400,
       "Neispravan status prijave",
-      "Dozvoljene vrednosti su: Submitted, Eligible, Rejected.",
+      "Dozvoljene vrednosti su: Podneta, Odobrena, Odbijena.",
     );
   }
 
