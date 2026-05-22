@@ -1,6 +1,9 @@
 import type { ApiSuccess } from "../types/api/common";
 import type {
+  DownloadedEnrollmentContract,
+  EnrollmentFinalizationSummary,
   EligiblePrijavaRow,
+  PendingEnrollmentFinalizationRow,
   RankingItem,
   RankingListSummary,
   StudentAdmissionStatus,
@@ -11,6 +14,20 @@ import { httpClient } from "./httpClient";
 const authHeaders = (token: string) => ({
   Authorization: `Bearer ${token}`,
 });
+
+const getFileNameFromDisposition = (contentDisposition?: string): string | null => {
+  if (!contentDisposition) {
+    return null;
+  }
+
+  const utfMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utfMatch?.[1]) {
+    return decodeURIComponent(utfMatch[1]);
+  }
+
+  const plainMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+  return plainMatch?.[1] ?? null;
+};
 
 export const listStudyProgramsRequest = async (
   token: string,
@@ -145,6 +162,114 @@ export const getStudentAdmissionStatusRequest = async (
       headers: authHeaders(token),
     },
   );
+
+  return response.data;
+};
+
+export const uploadSignedEnrollmentContractRequest = async (
+  token: string,
+  file: File,
+): Promise<
+  ApiSuccess<{ idUpisa: number; statusUpisa: string; signedContractUploadedAt: string | null }>
+> => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await httpClient.post<
+    ApiSuccess<{ idUpisa: number; statusUpisa: string; signedContractUploadedAt: string | null }>
+  >("/upis/finalizacija/ugovor", formData, {
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return response.data;
+};
+
+export const downloadStudentEnrollmentContractRequest = async (
+  token: string,
+): Promise<DownloadedEnrollmentContract> => {
+  const response = await httpClient.get<Blob>("/upis/finalizacija/ugovor/download", {
+    headers: authHeaders(token),
+    responseType: "blob",
+  });
+
+  return {
+    blob: response.data,
+    mimeType: String(response.headers["content-type"] ?? "application/octet-stream"),
+    fileName:
+      getFileNameFromDisposition(String(response.headers["content-disposition"] ?? "")) ??
+      "ugovor.bin",
+  };
+};
+
+export const listPendingEnrollmentFinalizationsRequest = async (
+  token: string,
+  skolskaGodina?: string,
+): Promise<ApiSuccess<{ rows: PendingEnrollmentFinalizationRow[] }>> => {
+  const response = await httpClient.get<ApiSuccess<{ rows: PendingEnrollmentFinalizationRow[] }>>(
+    "/upis/finalizacija/pending",
+    {
+      headers: authHeaders(token),
+      params: {
+        skolskaGodina: skolskaGodina || undefined,
+      },
+    },
+  );
+
+  return response.data;
+};
+
+export const getEnrollmentFinalizationSummaryRequest = async (
+  token: string,
+  skolskaGodina?: string,
+): Promise<ApiSuccess<EnrollmentFinalizationSummary>> => {
+  const response = await httpClient.get<ApiSuccess<EnrollmentFinalizationSummary>>(
+    "/upis/finalizacija/summary",
+    {
+      headers: authHeaders(token),
+      params: {
+        skolskaGodina: skolskaGodina || undefined,
+      },
+    },
+  );
+
+  return response.data;
+};
+
+export const downloadEnrollmentContractByPrijavaRequest = async (
+  token: string,
+  brojPrijave: number,
+  skolskaGodina: string,
+): Promise<DownloadedEnrollmentContract> => {
+  const response = await httpClient.get<Blob>(
+    `/upis/finalizacija/${brojPrijave}/${encodeURIComponent(skolskaGodina)}/ugovor/download`,
+    {
+      headers: authHeaders(token),
+      responseType: "blob",
+    },
+  );
+
+  return {
+    blob: response.data,
+    mimeType: String(response.headers["content-type"] ?? "application/octet-stream"),
+    fileName:
+      getFileNameFromDisposition(String(response.headers["content-disposition"] ?? "")) ??
+      "ugovor.bin",
+  };
+};
+
+export const confirmEnrollmentFinalizationRequest = async (
+  token: string,
+  brojPrijave: number,
+  skolskaGodina: string,
+): Promise<ApiSuccess<{ brojIndeksa: string | null; datumUpisa: string | null }>> => {
+  const response = await httpClient.post<
+    ApiSuccess<{ brojIndeksa: string | null; datumUpisa: string | null }>
+  >(`/upis/finalizacija/${brojPrijave}/${encodeURIComponent(skolskaGodina)}/potvrdi`, undefined, {
+    headers: authHeaders(token),
+  });
 
   return response.data;
 };

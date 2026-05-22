@@ -6,7 +6,6 @@ import { DataTable } from "../../components/ui/DataTable";
 import { FilterBar } from "../../components/ui/FilterBar";
 import { toApiClientError } from "../../services/httpClient";
 import {
-  createKandidatRequest,
   deleteKandidatRequest,
   getKandidatRequest,
   updateKandidatRequest,
@@ -123,19 +122,21 @@ export default function KandidatiPage(): ReactElement {
       return;
     }
 
+    if (!editingJmbg) {
+      setLocalErrorMessage(
+        "Izaberite kandidata za izmenu iz tabele. Dodavanje novih kandidata je dostupno kroz studentsku prijavu.",
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     clearLocalFeedback();
     dispatch(clearKandidatiError());
 
     try {
       const payload = toPayload(form);
-      if (editingJmbg) {
-        await updateKandidatRequest(token, editingJmbg, payload);
-        setSuccessMessage("Kandidat je uspesno azuriran.");
-      } else {
-        await createKandidatRequest(token, payload);
-        setSuccessMessage("Kandidat je uspesno dodat.");
-      }
+      await updateKandidatRequest(token, editingJmbg, payload);
+      setSuccessMessage("Kandidat je uspesno azuriran.");
 
       setForm(emptyForm);
       setEditingJmbg(null);
@@ -165,9 +166,12 @@ export default function KandidatiPage(): ReactElement {
         </header>
 
         <section className="rounded-2xl border border-slate-300 bg-white p-4">
-          <h2 className="text-lg font-semibold text-slate-900">
-            {editingJmbg ? "Izmena kandidata" : "Novi kandidat"}
-          </h2>
+          <h2 className="text-lg font-semibold text-slate-900">Izmena kandidata</h2>
+          {!editingJmbg ? (
+            <p className="mt-1 text-sm text-slate-600">
+              Izaberite kandidata iz tabele klikom na dugme Izmeni.
+            </p>
+          ) : null}
 
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <input
@@ -222,14 +226,16 @@ export default function KandidatiPage(): ReactElement {
           </div>
 
           <div className="mt-4 flex flex-wrap gap-3">
-            <button
-              type="button"
-              className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-              onClick={() => void onSubmit()}
-              disabled={isSubmitting}
-            >
-              {editingJmbg ? "Sacuvaj izmene" : "Dodaj kandidata"}
-            </button>
+            {editingJmbg ? (
+              <button
+                type="button"
+                className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                onClick={() => void onSubmit()}
+                disabled={isSubmitting}
+              >
+                Sacuvaj izmene
+              </button>
+            ) : null}
             {editingJmbg ? (
               <button
                 type="button"
@@ -263,6 +269,9 @@ export default function KandidatiPage(): ReactElement {
             { value: "student", label: "student" },
             { value: "zaposlen", label: "zaposlen" },
           ]}
+          onApply={() => {
+            void dispatch(loadKandidati());
+          }}
         />
 
         <div className="flex justify-end">

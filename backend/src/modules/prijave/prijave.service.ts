@@ -21,6 +21,21 @@ import type {
 } from "../../types/modules/prijave";
 import type { UserRole } from "../../types/modules/auth";
 
+const normalizeSchoolYear = (value: string): string => {
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(\d{4})/);
+
+  if (!match) {
+    throw new ApiError(
+      400,
+      "Neispravna skolska godina",
+      "Skolska godina mora biti u formatu YYYY, na primer 2026.",
+    );
+  }
+
+  return match[1];
+};
+
 export const listPrijaveService = async (
   query: Record<string, unknown>,
 ): Promise<{ rows: PrijavaRecord[]; page: number; pageSize: number }> => {
@@ -141,6 +156,7 @@ export const createPrijavaService = async (
 
   const payloadWithOwner: PrijavaMutationInput = {
     ...payload,
+    skolskaGodina: normalizeSchoolYear(payload.skolskaGodina),
     idKorisnika: actorRole === "student" ? (actorUserId ?? null) : (payload.idKorisnika ?? null),
   };
 
@@ -161,7 +177,10 @@ export const updatePrijavaService = async (
   key: PrijavaKey,
   payload: PrijavaMutationInput,
 ): Promise<void> => {
-  await updatePrijava(key, payload);
+  await updatePrijava(key, {
+    ...payload,
+    skolskaGodina: normalizeSchoolYear(payload.skolskaGodina),
+  });
 };
 
 export const updatePrijavaStatusService = async (

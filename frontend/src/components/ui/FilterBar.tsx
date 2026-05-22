@@ -14,6 +14,7 @@ interface FilterBarProps {
   statusValue?: string;
   onStatusChange?: (value: string) => void;
   statusOptions?: FilterBarOption[];
+  onApply?: () => void;
 }
 
 export function FilterBar({
@@ -25,6 +26,7 @@ export function FilterBar({
   statusValue,
   onStatusChange,
   statusOptions,
+  onApply,
 }: FilterBarProps): ReactElement {
   return (
     <section className="grid gap-3 rounded-2xl border border-slate-300 bg-white p-4 md:grid-cols-2 xl:grid-cols-4">
@@ -35,6 +37,11 @@ export function FilterBar({
           placeholder="Unesite pojam za pretragu"
           value={searchValue}
           onChange={(event) => onSearchChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              onApply?.();
+            }
+          }}
         />
       </label>
 
@@ -76,6 +83,8 @@ export function FilterBar({
         <button
           type="button"
           className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
+          onClick={onApply}
+          disabled={!onApply}
         >
           Primeni filtere
         </button>

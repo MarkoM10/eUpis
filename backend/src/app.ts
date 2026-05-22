@@ -10,6 +10,7 @@ import { parseListQuery } from "./shared/query";
 import { kandidatiRouter } from "./modules/kandidati/kandidati.routes";
 import { prijaveRouter } from "./modules/prijave/prijave.routes";
 import { upisRouter } from "./modules/upis/upis.routes";
+import { auditRouter } from "./modules/audit/audit.routes";
 
 const app = express();
 
@@ -64,6 +65,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/kandidati", kandidatiRouter);
 app.use("/api/prijave", prijaveRouter);
 app.use("/api/upis", upisRouter);
+app.use("/api/audit", auditRouter);
 
 app.use(errorMiddleware);
 

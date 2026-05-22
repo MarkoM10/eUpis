@@ -45,12 +45,13 @@ export interface RankingItem {
 
 export interface StudentAdmissionStatus {
   stage:
-    | "NoApplication"
-    | "WaitingEligibility"
-    | "OdobrenaNoScore"
-    | "WaitingEnrollmentDecision"
-    | "EnrollmentApproved"
-    | "EnrollmentOdbijena";
+    | "NemaPrijave"
+    | "CekaObraduPrijave"
+    | "OdobrenaBezBodova"
+    | "CekaKonacnuOdluku"
+    | "OdobrenUpis"
+    | "UpisZavrsen"
+    | "UpisOdbijen";
   prijavaStatus: string | null;
   brojPrijave: number | null;
   skolskaGodina: string | null;
@@ -59,4 +60,36 @@ export interface StudentAdmissionStatus {
   brojPoena: number | null;
   rangMesto: number | null;
   enrollmentStatus: string | null;
+  enrollmentFinalizationStatus:
+    | "NijePrimenljivo"
+    | "UgovorNedostaje"
+    | "UgovorOtpremljen"
+    | "UpisZavrsen";
+  hasSignedContract: boolean;
+  signedContractUploadedAt: string | null;
+  brojIndeksa: string | null;
+  datumUpisa: string | null;
+}
+
+export interface PendingEnrollmentFinalizationRow {
+  idUpisa: number;
+  brojPrijave: number;
+  skolskaGodina: string;
+  imePrezime: string | null;
+  studijskiProgram: string | null;
+  brojPoena: number | null;
+  rangMesto: number | null;
+  statusUpisa: "UgovorOtpremljen" | "UpisZavrsen";
+  signedContractUploadedAt: string | null;
+  contractFileName: string | null;
+}
+
+export interface EnrollmentFinalizationSummary {
+  ukupnoFinalizovanihUpisa: number;
+}
+
+export interface DownloadedEnrollmentContract {
+  blob: Blob;
+  fileName: string;
+  mimeType: string;
 }

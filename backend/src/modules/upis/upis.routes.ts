@@ -2,14 +2,21 @@ import { Router } from "express";
 import { authMiddleware } from "../../middleware/authMiddleware";
 import { requireRole } from "../../middleware/requireRole";
 import {
+  confirmEnrollmentFinalizationHandler,
+  downloadEnrollmentContractByPrijavaHandler,
+  downloadStudentSignedEnrollmentContractHandler,
+  enrollmentContractUploadMiddleware,
   finalizeRankingHandler,
   generateFinalRankingHandler,
+  getEnrollmentFinalizationSummaryHandler,
   getStudentAdmissionStatusHandler,
+  listPendingEnrollmentFinalizationsHandler,
   listEligiblePrijaveHandler,
   listRankingItemsHandler,
   listRankingListsHandler,
   listStudyProgramsHandler,
   saveExamScoreHandler,
+  uploadSignedEnrollmentContractHandler,
 } from "./upis.controller";
 
 const upisRouter = Router();
@@ -28,5 +35,36 @@ upisRouter.get(
   listRankingItemsHandler,
 );
 upisRouter.get("/student-status", requireRole("student"), getStudentAdmissionStatusHandler);
+upisRouter.post(
+  "/finalizacija/ugovor",
+  requireRole("student"),
+  enrollmentContractUploadMiddleware,
+  uploadSignedEnrollmentContractHandler,
+);
+upisRouter.get(
+  "/finalizacija/ugovor/download",
+  requireRole("student"),
+  downloadStudentSignedEnrollmentContractHandler,
+);
+upisRouter.get(
+  "/finalizacija/pending",
+  requireRole("admin"),
+  listPendingEnrollmentFinalizationsHandler,
+);
+upisRouter.get(
+  "/finalizacija/summary",
+  requireRole("admin"),
+  getEnrollmentFinalizationSummaryHandler,
+);
+upisRouter.get(
+  "/finalizacija/:brojPrijave/:skolskaGodina/ugovor/download",
+  requireRole("admin"),
+  downloadEnrollmentContractByPrijavaHandler,
+);
+upisRouter.post(
+  "/finalizacija/:brojPrijave/:skolskaGodina/potvrdi",
+  requireRole("admin"),
+  confirmEnrollmentFinalizationHandler,
+);
 
 export { upisRouter };

@@ -1,6 +1,12 @@
+import oracledb from "oracledb";
 import { executeSql } from "../../db/oracle/execute";
+import { ApiError } from "../../shared/apiError";
 import type {
+  EnrollmentContractDownloadRecord,
+  EnrollmentFinalizationRecord,
+  EnrollmentFinalizationSummaryRecord,
   EligiblePrijavaRow,
+  PendingEnrollmentFinalizationRow,
   RankingItem,
   RankingListSummary,
   StudyProgramOption,
@@ -51,6 +57,44 @@ type RankingItemRow = {
   STUDIJSKI_PROGRAM: string | null;
 };
 
+type EnrollmentFinalizationRow = {
+  ID_UPISA: number;
+  BROJ_PRIJAVE: number;
+  SKOLSKA_GODINA: string;
+  STATUS_UPISA: "UgovorOtpremljen" | "UpisZavrsen";
+  UGOVOR_FILE_NAME: string | null;
+  UGOVOR_MIME_TYPE: string | null;
+  UGOVOR_FILE_SIZE: number | null;
+  UGOVOR_UPLOADED_AT: Date | null;
+  BROJ_INDEKSA: string | null;
+  DATUM_UPISA: Date | null;
+  HAS_SIGNED_CONTRACT: number;
+};
+
+type EnrollmentContractDownloadRow = {
+  UGOVOR_FILE_NAME: string | null;
+  UGOVOR_MIME_TYPE: string | null;
+  UGOVOR_FILE_SIZE: number | null;
+  UGOVOR_FILE_CONTENT: Buffer | null;
+};
+
+type PendingEnrollmentFinalizationDbRow = {
+  ID_UPISA: number;
+  BROJ_PRIJAVE: number;
+  SKOLSKA_GODINA: string;
+  IME_PREZIME: string | null;
+  STUDIJSKI_PROGRAM: string | null;
+  BROJ_POENA: number | null;
+  RANG_MESTO: number | null;
+  STATUS_UPISA: "UgovorOtpremljen" | "UpisZavrsen";
+  UGOVOR_UPLOADED_AT: Date | null;
+  UGOVOR_FILE_NAME: string | null;
+};
+
+type EnrollmentFinalizationSummaryRow = {
+  UKUPNO_FINALIZOVANIH_UPISA: number;
+};
+
 const mapProgram = (row: ProgramRow): StudyProgramOption => ({
   idPrograma: row.ID_PROGRAMA,
   nazivPrograma: row.NAZIV_PROGRAMA,
@@ -96,8 +140,39 @@ const mapRankingItem = (row: RankingItemRow): RankingItem => ({
   studijskiProgram: row.STUDIJSKI_PROGRAM,
 });
 
+const mapEnrollmentFinalization = (
+  row: EnrollmentFinalizationRow,
+): EnrollmentFinalizationRecord => ({
+  idUpisa: row.ID_UPISA,
+  brojPrijave: row.BROJ_PRIJAVE,
+  skolskaGodina: row.SKOLSKA_GODINA,
+  statusUpisa: row.STATUS_UPISA,
+  contractFileName: row.UGOVOR_FILE_NAME,
+  contractMimeType: row.UGOVOR_MIME_TYPE,
+  contractFileSize: row.UGOVOR_FILE_SIZE,
+  hasSignedContract: row.HAS_SIGNED_CONTRACT === 1,
+  signedContractUploadedAt: row.UGOVOR_UPLOADED_AT ? row.UGOVOR_UPLOADED_AT.toISOString() : null,
+  brojIndeksa: row.BROJ_INDEKSA,
+  datumUpisa: row.DATUM_UPISA ? row.DATUM_UPISA.toISOString() : null,
+});
+
+const mapPendingEnrollmentFinalization = (
+  row: PendingEnrollmentFinalizationDbRow,
+): PendingEnrollmentFinalizationRow => ({
+  idUpisa: row.ID_UPISA,
+  brojPrijave: row.BROJ_PRIJAVE,
+  skolskaGodina: row.SKOLSKA_GODINA,
+  imePrezime: row.IME_PREZIME,
+  studijskiProgram: row.STUDIJSKI_PROGRAM,
+  brojPoena: row.BROJ_POENA,
+  rangMesto: row.RANG_MESTO,
+  statusUpisa: row.STATUS_UPISA,
+  signedContractUploadedAt: row.UGOVOR_UPLOADED_AT ? row.UGOVOR_UPLOADED_AT.toISOString() : null,
+  contractFileName: row.UGOVOR_FILE_NAME,
+});
+
 const getNextValue = async (
-  tableName: "STAVKARANGLISTE" | "KONACNARANGLISTA",
+  tableName: "STAVKARANGLISTE" | "KONACNARANGLISTA" | "UPIS_FINALIZACIJA",
   columnName: string,
 ): Promise<number> => {
   const result = await executeSql<{ NEXT_VAL: number }>(
@@ -401,7 +476,7 @@ export const insertExamScore = async (input: {
         :brojPrijave,
         :idPrograma,
         NULL,
-        'Scored',
+        'BodoviUneti',
         :studijskiProgram,
         'N'
       )
@@ -480,4 +555,261 @@ export const updateRankingListSeats = async (
       brojMesta,
     },
   );
+};
+
+export const getEnrollmentFinalizationByPrijava = async (
+  brojPrijave: number,
+  skolskaGodina: string,
+): Promise<EnrollmentFinalizationRecord | null> => {
+  const result = await executeSql<EnrollmentFinalizationRow>(
+    `
+      SELECT
+        uf.id_upisa,
+        uf.broj_prijave,
+        uf.skolska_godina,
+        uf.status_upisa,
+        uf.ugovor_file_name,
+        uf.ugovor_mime_type,
+        uf.ugovor_file_size,
+        uf.ugovor_uploaded_at,
+        uf.broj_indeksa,
+        uf.datum_upisa,
+        CASE WHEN uf.ugovor_file_content IS NOT NULL THEN 1 ELSE 0 END AS has_signed_contract
+      FROM Upis_Finalizacija uf
+      WHERE uf.broj_prijave = :brojPrijave
+        AND uf.skolska_godina = :skolskaGodina
+      FETCH FIRST 1 ROWS ONLY
+    `,
+    {
+      brojPrijave,
+      skolskaGodina,
+    },
+  );
+
+  const row = result.rows?.[0];
+  return row ? mapEnrollmentFinalization(row) : null;
+};
+
+export const upsertSignedEnrollmentContract = async (input: {
+  brojPrijave: number;
+  skolskaGodina: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  fileContent: Buffer;
+}): Promise<EnrollmentFinalizationRecord> => {
+  const existing = await getEnrollmentFinalizationByPrijava(input.brojPrijave, input.skolskaGodina);
+
+  if (existing) {
+    await executeSql(
+      `
+        UPDATE Upis_Finalizacija
+        SET
+          status_upisa = 'UgovorOtpremljen',
+          ugovor_file_name = :fileName,
+          ugovor_mime_type = :mimeType,
+          ugovor_file_size = :fileSize,
+          ugovor_file_content = :fileContent,
+          ugovor_uploaded_at = SYSDATE,
+          updated_at = SYSDATE
+        WHERE id_upisa = :idUpisa
+      `,
+      {
+        idUpisa: existing.idUpisa,
+        fileName: input.fileName,
+        mimeType: input.mimeType,
+        fileSize: input.fileSize,
+        fileContent: input.fileContent,
+      },
+    );
+  } else {
+    const idUpisa = await getNextValue("UPIS_FINALIZACIJA", "id_upisa");
+
+    await executeSql(
+      `
+        INSERT INTO Upis_Finalizacija (
+          id_upisa,
+          broj_prijave,
+          skolska_godina,
+          status_upisa,
+          ugovor_file_name,
+          ugovor_mime_type,
+          ugovor_file_size,
+          ugovor_file_content,
+          ugovor_uploaded_at,
+          created_at,
+          updated_at
+        )
+        VALUES (
+          :idUpisa,
+          :brojPrijave,
+          :skolskaGodina,
+          'UgovorOtpremljen',
+          :fileName,
+          :mimeType,
+          :fileSize,
+          :fileContent,
+          SYSDATE,
+          SYSDATE,
+          SYSDATE
+        )
+      `,
+      {
+        idUpisa,
+        brojPrijave: input.brojPrijave,
+        skolskaGodina: input.skolskaGodina,
+        fileName: input.fileName,
+        mimeType: input.mimeType,
+        fileSize: input.fileSize,
+        fileContent: input.fileContent,
+      },
+    );
+  }
+
+  const updated = await getEnrollmentFinalizationByPrijava(input.brojPrijave, input.skolskaGodina);
+  if (!updated) {
+    throw new ApiError(
+      500,
+      "Cuvanje ugovora nije uspelo",
+      "Doslo je do greske prilikom cuvanja potpisanog ugovora.",
+    );
+  }
+
+  return updated;
+};
+
+export const getEnrollmentContractDownload = async (
+  brojPrijave: number,
+  skolskaGodina: string,
+): Promise<EnrollmentContractDownloadRecord> => {
+  const result = await executeSql<EnrollmentContractDownloadRow>(
+    `
+      SELECT
+        uf.ugovor_file_name,
+        uf.ugovor_mime_type,
+        uf.ugovor_file_size,
+        uf.ugovor_file_content
+      FROM Upis_Finalizacija uf
+      WHERE uf.broj_prijave = :brojPrijave
+        AND uf.skolska_godina = :skolskaGodina
+      FETCH FIRST 1 ROWS ONLY
+    `,
+    {
+      brojPrijave,
+      skolskaGodina,
+    },
+    {
+      fetchInfo: {
+        UGOVOR_FILE_CONTENT: { type: oracledb.BUFFER },
+      },
+    },
+  );
+
+  const row = result.rows?.[0];
+  if (!row || !row.UGOVOR_FILE_CONTENT || !row.UGOVOR_FILE_NAME || !row.UGOVOR_FILE_SIZE) {
+    throw new ApiError(404, "Ugovor nije pronadjen", "Potpisani ugovor nije otpremljen.");
+  }
+
+  return {
+    fileName: row.UGOVOR_FILE_NAME,
+    mimeType: row.UGOVOR_MIME_TYPE ?? "application/octet-stream",
+    fileSize: row.UGOVOR_FILE_SIZE,
+    fileContent: row.UGOVOR_FILE_CONTENT,
+  };
+};
+
+export const listPendingEnrollmentFinalizations = async (
+  skolskaGodina?: string,
+): Promise<PendingEnrollmentFinalizationRow[]> => {
+  const result = await executeSql<PendingEnrollmentFinalizationDbRow>(
+    `
+      SELECT
+        uf.id_upisa,
+        uf.broj_prijave,
+        uf.skolska_godina,
+        p.ime_prezime,
+        s.studijski_program,
+        s.broj_poena,
+        s.rang_mesto,
+        uf.status_upisa,
+        uf.ugovor_uploaded_at,
+        uf.ugovor_file_name
+      FROM Upis_Finalizacija uf
+      JOIN Prijava p
+        ON p.broj_prijave = uf.broj_prijave
+       AND p.skolska_godina = uf.skolska_godina
+      LEFT JOIN StavkaRangListe s
+        ON s.id_stavke = (
+          SELECT MAX(s2.id_stavke)
+          FROM StavkaRangListe s2
+          WHERE s2.broj_prijave = uf.broj_prijave
+        )
+      WHERE uf.status_upisa = 'UgovorOtpremljen'
+        AND (:skolskaGodina IS NULL OR uf.skolska_godina = :skolskaGodina)
+      ORDER BY uf.ugovor_uploaded_at DESC NULLS LAST, uf.id_upisa DESC
+    `,
+    {
+      skolskaGodina: skolskaGodina ?? null,
+    },
+  );
+
+  return (result.rows ?? []).map(mapPendingEnrollmentFinalization);
+};
+
+export const getEnrollmentFinalizationSummary = async (
+  skolskaGodina?: string,
+): Promise<EnrollmentFinalizationSummaryRecord> => {
+  const result = await executeSql<EnrollmentFinalizationSummaryRow>(
+    `
+      SELECT COUNT(*) AS ukupno_finalizovanih_upisa
+      FROM Upis_Finalizacija uf
+      WHERE uf.status_upisa = 'UpisZavrsen'
+        AND (:skolskaGodina IS NULL OR uf.skolska_godina = :skolskaGodina)
+    `,
+    {
+      skolskaGodina: skolskaGodina ?? null,
+    },
+  );
+
+  return {
+    ukupnoFinalizovanihUpisa: result.rows?.[0]?.UKUPNO_FINALIZOVANIH_UPISA ?? 0,
+  };
+};
+
+export const confirmEnrollmentFinalization = async (input: {
+  brojPrijave: number;
+  skolskaGodina: string;
+  brojIndeksa: string;
+  adminUserId: number;
+}): Promise<EnrollmentFinalizationRecord> => {
+  await executeSql(
+    `
+      UPDATE Upis_Finalizacija
+      SET
+        status_upisa = 'UpisZavrsen',
+        broj_indeksa = :brojIndeksa,
+        datum_upisa = SYSDATE,
+        potvrdio_admin_id = :adminUserId,
+        updated_at = SYSDATE
+      WHERE broj_prijave = :brojPrijave
+        AND skolska_godina = :skolskaGodina
+    `,
+    {
+      brojPrijave: input.brojPrijave,
+      skolskaGodina: input.skolskaGodina,
+      brojIndeksa: input.brojIndeksa,
+      adminUserId: input.adminUserId,
+    },
+  );
+
+  const updated = await getEnrollmentFinalizationByPrijava(input.brojPrijave, input.skolskaGodina);
+  if (!updated) {
+    throw new ApiError(
+      500,
+      "Finalizacija upisa nije uspela",
+      "Nije moguce potvrditi finalizaciju upisa za izabranu prijavu.",
+    );
+  }
+
+  return updated;
 };

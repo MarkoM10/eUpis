@@ -4,16 +4,22 @@ import { OracleMessageCard } from "../../components/feedback/OracleMessageCard";
 import { DataTable } from "../../components/ui/DataTable";
 import { toApiClientError } from "../../services/httpClient";
 import {
+  confirmEnrollmentFinalizationRequest,
+  downloadEnrollmentContractByPrijavaRequest,
+  downloadStudentEnrollmentContractRequest,
   generateFinalRankingRequest,
   getStudentAdmissionStatusRequest,
+  listPendingEnrollmentFinalizationsRequest,
   listEligiblePrijaveRequest,
   listRankingItemsRequest,
   listRankingListsRequest,
   listStudyProgramsRequest,
   saveExamScoreRequest,
+  uploadSignedEnrollmentContractRequest,
 } from "../../services/upisService";
 import type {
   EligiblePrijavaRow,
+  PendingEnrollmentFinalizationRow,
   RankingItem,
   StudentAdmissionStatus,
   StudyProgramOption,
@@ -29,12 +35,38 @@ const buildProgramLabel = (program: StudyProgramOption): string =>
   `${program.nazivPrograma} | ${program.modul}`.slice(0, 100);
 
 const stageDescription: Record<StudentAdmissionStatus["stage"], string> = {
-  NoApplication: "Jos nemate podnetu prijavu.",
-  WaitingEligibility: "Prijava je poslata. Sacekajte da administrator obradi status.",
-  OdobrenaNoScore: "Prijava je Odobrena. Sacekajte evidentiranje rezultata ispita.",
-  WaitingEnrollmentDecision: "Rezultat ispita je evidentiran. Sacekajte finalnu odluku o upisu.",
-  EnrollmentApproved: "Cestitamo! Odobren vam je upis.",
-  EnrollmentOdbijena: "Niste upali u konacan broj mesta za upis.",
+  NemaPrijave: "Jos nemate podnetu prijavu.",
+  CekaObraduPrijave: "Prijava je poslata. Sacekajte da administrator obradi status.",
+  OdobrenaBezBodova: "Prijava je odobrena. Sacekajte evidentiranje rezultata ispita.",
+  CekaKonacnuOdluku: "Rezultat ispita je evidentiran. Sacekajte finalnu odluku o upisu.",
+  OdobrenUpis:
+    "Cestitamo, uspesno ste se upisali na fakultet! Potrebno je jos da otpremite potpisani ugovor.",
+  UpisZavrsen: "Upis je uspesno finalizovan. Dobrodosli!",
+  UpisOdbijen: "Niste upali u konacan broj mesta za upis.",
+};
+
+const formatDateTime = (value: string | null): string => {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString("sr-RS");
+};
+
+const triggerFileDownload = (blob: Blob, fileName: string): void => {
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(url);
 };
 
 export default function UpisPage(): ReactElement {
@@ -50,6 +82,10 @@ export default function UpisPage(): ReactElement {
 
   const [selectedRankingId, setSelectedRankingId] = useState<string>("");
   const [rankingItems, setRankingItems] = useState<RankingItem[]>([]);
+  const [pendingFinalizations, setPendingFinalizations] = useState<
+    PendingEnrollmentFinalizationRow[]
+  >([]);
+  const [signedContractFile, setSignedContractFile] = useState<File | null>(null);
 
   const [studentStatus, setStudentStatus] = useState<StudentAdmissionStatus | null>(null);
 
@@ -103,7 +139,7 @@ export default function UpisPage(): ReactElement {
   const hasVisibleFinalRanking = useMemo(
     () =>
       rankingItems.length > 0 &&
-      rankingItems.every((item) => item.status === "Approved" || item.status === "Odbijena"),
+      rankingItems.every((item) => item.status === "Odobrena" || item.status === "Odbijena"),
     [rankingItems],
   );
 
@@ -199,6 +235,19 @@ export default function UpisPage(): ReactElement {
     }
   };
 
+  const loadPendingFinalizations = async (): Promise<void> => {
+    if (!token || !isAdmin) {
+      return;
+    }
+
+    try {
+      const response = await listPendingEnrollmentFinalizationsRequest(token, skolskaGodina);
+      setPendingFinalizations(response.data.rows);
+    } catch (error) {
+      setRequestError(error);
+    }
+  };
+
   useEffect(() => {
     void loadPrograms();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -211,6 +260,7 @@ export default function UpisPage(): ReactElement {
 
     void loadEligibleRows();
     void loadRankingLists();
+    void loadPendingFinalizations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, isAdmin, skolskaGodina, selectedProgramId]);
 
@@ -305,6 +355,91 @@ export default function UpisPage(): ReactElement {
       setSelectedRankingId(String(response.data.idRangListe));
       await loadRankingItems(response.data.idRangListe);
       await loadEligibleRows();
+      await loadPendingFinalizations();
+    } catch (error) {
+      setRequestError(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onUploadSignedContract = async (): Promise<void> => {
+    if (!token || !signedContractFile) {
+      setErrorMessage("Potrebno je da izaberete potpisani ugovor pre otpremanja.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    clearFeedback();
+
+    try {
+      await uploadSignedEnrollmentContractRequest(token, signedContractFile);
+      setSignedContractFile(null);
+      setSuccessMessage(
+        "Potpisani ugovor je uspesno otpremljen. Sacekajte potvrdu studentske sluzbe.",
+      );
+      await loadStudentStatus();
+    } catch (error) {
+      setRequestError(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onDownloadOwnContract = async (): Promise<void> => {
+    if (!token) {
+      return;
+    }
+
+    try {
+      const result = await downloadStudentEnrollmentContractRequest(token);
+      triggerFileDownload(result.blob, result.fileName);
+    } catch (error) {
+      setRequestError(error);
+    }
+  };
+
+  const onDownloadPendingContract = async (
+    brojPrijave: number,
+    finalizacijaGodina: string,
+  ): Promise<void> => {
+    if (!token) {
+      return;
+    }
+
+    try {
+      const result = await downloadEnrollmentContractByPrijavaRequest(
+        token,
+        brojPrijave,
+        finalizacijaGodina,
+      );
+      triggerFileDownload(result.blob, result.fileName);
+    } catch (error) {
+      setRequestError(error);
+    }
+  };
+
+  const onConfirmEnrollment = async (
+    brojPrijave: number,
+    finalizacijaGodina: string,
+  ): Promise<void> => {
+    if (!token) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    clearFeedback();
+
+    try {
+      const response = await confirmEnrollmentFinalizationRequest(
+        token,
+        brojPrijave,
+        finalizacijaGodina,
+      );
+      setSuccessMessage(
+        `Upis je finalizovan. Dodeljen broj indeksa: ${response.data.brojIndeksa ?? "-"}.`,
+      );
+      await loadPendingFinalizations();
     } catch (error) {
       setRequestError(error);
     } finally {
@@ -490,14 +625,81 @@ export default function UpisPage(): ReactElement {
                 ]}
               />
             ) : null}
+
+            <DataTable
+              title="Kandidati sa otpremljenim ugovorom (cekaju potvrdu)"
+              rows={pendingFinalizations}
+              emptyMessage="Nema kandidata koji cekaju finalnu potvrdu upisa."
+              columns={[
+                { key: "broj", header: "Broj prijave", render: (row) => row.brojPrijave },
+                { key: "godina", header: "Skolska godina", render: (row) => row.skolskaGodina },
+                { key: "ime", header: "Kandidat", render: (row) => row.imePrezime ?? "-" },
+                {
+                  key: "program",
+                  header: "Studijski program",
+                  render: (row) => row.studijskiProgram ?? "-",
+                },
+                {
+                  key: "rezultat",
+                  header: "Poeni / rang",
+                  render: (row) => `${row.brojPoena ?? "-"} / ${row.rangMesto ?? "-"}`,
+                },
+                {
+                  key: "ugovorAt",
+                  header: "Ugovor otpremljen",
+                  render: (row) => formatDateTime(row.signedContractUploadedAt),
+                },
+                {
+                  key: "akcija",
+                  header: "Akcija",
+                  render: (row) => (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold"
+                        onClick={() =>
+                          void onDownloadPendingContract(row.brojPrijave, row.skolskaGodina)
+                        }
+                      >
+                        Preuzmi ugovor
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded bg-emerald-700 px-2 py-1 text-xs font-semibold text-white disabled:opacity-60"
+                        onClick={() => void onConfirmEnrollment(row.brojPrijave, row.skolskaGodina)}
+                        disabled={isSubmitting}
+                      >
+                        Potvrdi upis
+                      </button>
+                    </div>
+                  ),
+                },
+              ]}
+            />
           </>
         ) : (
-          <section className="rounded-2xl border border-slate-300 bg-white p-6">
+          <section
+            className={`rounded-2xl p-6 ${
+              studentStatus?.stage === "UpisOdbijen"
+                ? "border border-red-300 bg-red-50"
+                : studentStatus?.stage === "UpisZavrsen"
+                  ? "border border-emerald-300 bg-emerald-50"
+                  : "border border-slate-300 bg-white"
+            }`}
+          >
             {isLoading ? <p className="text-sm text-slate-600">Ucitavanje statusa...</p> : null}
 
             {studentStatus ? (
               <div className="space-y-4">
-                <article className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <article
+                  className={`rounded-xl p-4 ${
+                    studentStatus.stage === "UpisOdbijen"
+                      ? "border border-red-200 bg-red-100"
+                      : studentStatus.stage === "UpisZavrsen"
+                        ? "border border-emerald-200 bg-emerald-100"
+                        : "border border-slate-200 bg-slate-50"
+                  }`}
+                >
                   <h2 className="text-lg font-semibold text-slate-900">Status upisnog procesa</h2>
                   <p className="mt-1 text-sm text-slate-700">
                     {stageDescription[studentStatus.stage]}
@@ -524,6 +726,72 @@ export default function UpisPage(): ReactElement {
                     </p>
                   </article>
                 </div>
+
+                {studentStatus.stage === "OdobrenUpis" ? (
+                  <article className="rounded-xl border border-emerald-300 bg-emerald-50 p-4">
+                    <h3 className="text-base font-semibold text-emerald-900">
+                      Finalni korak: potpisani ugovor o studiranju
+                    </h3>
+                    <p className="mt-1 text-sm text-emerald-900">
+                      {studentStatus.enrollmentFinalizationStatus === "UgovorOtpremljen"
+                        ? "Ugovor je otpremljen. Sacekajte da studentska sluzba potvrdi finalizaciju upisa."
+                        : "Otpremite potpisani ugovor kako bi administracija mogla da finalizuje upis i dodeli broj indeksa."}
+                    </p>
+
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <input
+                        type="file"
+                        className="rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm"
+                        onChange={(event) => setSignedContractFile(event.target.files?.[0] ?? null)}
+                      />
+                      <button
+                        type="button"
+                        className="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                        onClick={() => void onUploadSignedContract()}
+                        disabled={isSubmitting}
+                      >
+                        Otpremi potpisani ugovor
+                      </button>
+                      {studentStatus.hasSignedContract ? (
+                        <button
+                          type="button"
+                          className="rounded-lg border border-emerald-400 px-3 py-2 text-sm font-semibold text-emerald-900"
+                          onClick={() => void onDownloadOwnContract()}
+                        >
+                          Preuzmi otpremljeni ugovor
+                        </button>
+                      ) : null}
+                    </div>
+
+                    <p className="mt-2 text-xs text-emerald-900">
+                      Ugovor otpremljen: {formatDateTime(studentStatus.signedContractUploadedAt)}
+                    </p>
+                  </article>
+                ) : null}
+
+                {studentStatus.stage === "UpisZavrsen" ? (
+                  <article className="rounded-xl border border-emerald-300 bg-white p-4">
+                    <h3 className="text-base font-semibold text-emerald-900">
+                      Upis je finalizovan
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-700">
+                      Broj indeksa:{" "}
+                      <span className="font-semibold">{studentStatus.brojIndeksa ?? "-"}</span>
+                    </p>
+                    <p className="mt-1 text-sm text-slate-700">
+                      Datum finalizacije: {formatDateTime(studentStatus.datumUpisa)}
+                    </p>
+                    {studentStatus.hasSignedContract ? (
+                      <button
+                        type="button"
+                        className="mt-3 rounded-lg border border-emerald-400 px-3 py-2 text-sm font-semibold text-emerald-900"
+                        onClick={() => void onDownloadOwnContract()}
+                      >
+                        Preuzmi potpisani ugovor
+                      </button>
+                    ) : null}
+                  </article>
+                ) : null}
               </div>
             ) : null}
           </section>

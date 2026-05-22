@@ -58,16 +58,20 @@ export default function LoginPage(): ReactElement {
             </span>
             <h1 className="mt-5 text-4xl font-bold leading-tight">eUpis Master studije</h1>
             <p className="mt-3 text-teal-100">
-              Upravljanje konkursom, prijavama, rangiranjem i upisom kandidata.
+              Sistem za upravljanje procesom upisa na master studije.
             </p>
             <ul className="mt-6 space-y-2 text-sm">
               <li className="rounded-lg bg-white/90 p-2 text-slate-900">
                 1. Napravi nalog i prijavi se na sistem
               </li>
-              <li className="rounded-lg bg-white/90 p-2 text-slate-900">2. Kreiraj prijavu</li>
-              <li className="rounded-lg bg-white/90 p-2 text-slate-900">3. Rangiranje kandidata</li>
               <li className="rounded-lg bg-white/90 p-2 text-slate-900">
-                4. Upis primljenih kandidata i generisanje dokumentacije
+                2. Odaberi studijski program i kreiraj prijavu
+              </li>
+              <li className="rounded-lg bg-white/90 p-2 text-slate-900">
+                3. Prati status svoje prijave i sačekaj rezultate konkursa
+              </li>
+              <li className="rounded-lg bg-white/90 p-2 text-slate-900">
+                4. Shodno rezultatima i ostalim kriterijumima rangiraj se na konacnoj rang listi
               </li>
             </ul>
           </section>
@@ -76,12 +80,6 @@ export default function LoginPage(): ReactElement {
             <h2 className="text-2xl font-bold">
               {mode === "login" ? "Prijava korisnika" : "Registracija studenta"}
             </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              {mode === "login"
-                ? "Prijavite se postojecim nalogom."
-                : "Novi nalozi preko javne registracije dobijaju ulogu student."}
-            </p>
-
             <div className="mt-4 grid grid-cols-2 gap-2 rounded-lg bg-slate-100 p-1">
               <button
                 type="button"

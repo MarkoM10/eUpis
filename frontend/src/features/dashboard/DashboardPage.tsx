@@ -1,19 +1,17 @@
-import { useEffect, useMemo, useState, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/authStore";
-import { FilterBar } from "../../components/ui/FilterBar";
 import { DataTable } from "../../components/ui/DataTable";
 import { OracleMessageCard } from "../../components/feedback/OracleMessageCard";
 import { toApiClientError } from "../../services/httpClient";
+import { listAuditLogsRequest } from "../../services/auditService";
 import { listKandidatiRequest } from "../../services/kandidatiService";
 import { listPrijaveRequest } from "../../services/prijaveService";
-import { listRankingItemsRequest, listRankingListsRequest } from "../../services/upisService";
+import { getEnrollmentFinalizationSummaryRequest } from "../../services/upisService";
 import type { ActivityRow } from "../../types/models/dashboard";
 
 const getCurrentCycleLabel = (): string => {
-  const currentYear = new Date().getFullYear();
-  const nextYearSuffix = String((currentYear + 1) % 100).padStart(2, "0");
-  return `${currentYear}/${nextYearSuffix}`;
+  return String(new Date().getFullYear());
 };
 
 const toTimeLabel = (value: string | null | undefined): string => {
@@ -42,17 +40,22 @@ const toTimestamp = (value: string | null | undefined): number => {
   return Number.isNaN(parsed) ? 0 : parsed;
 };
 
-const buildStatusLabel = (status: string | null | undefined): string => {
-  if (!status) {
-    return "Podneta";
-  }
-
-  return status;
+type DashboardActivityRow = ActivityRow & {
+  timestamp: number;
 };
 
-type DashboardActivityRow = ActivityRow & {
-  status: string;
-  timestamp: number;
+const moduleLabels: Record<string, string> = {
+  PRIJAVA: "Prijava",
+  KANDIDAT: "Kandidat",
+  KONACNARANGLISTA: "Rang lista",
+  STAVKARANGLISTE: "Stavka rang liste",
+  UPIS_FINALIZACIJA: "Finalizacija upisa",
+};
+
+const operationLabels: Record<string, string> = {
+  INSERT: "Kreirano",
+  UPDATE: "Izmenjeno",
+  DELETE: "Obrisano",
 };
 
 interface DashboardMetrics {
@@ -79,10 +82,6 @@ export default function DashboardPage(): ReactElement {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [oracleDetails, setOracleDetails] = useState<string | undefined>(undefined);
 
-  const [searchValue, setSearchValue] = useState("");
-  const [sortValue, setSortValue] = useState("datum_desc");
-  const [statusValue, setStatusValue] = useState("svi");
-
   const loadDashboardData = async (): Promise<void> => {
     if (!token) {
       return;
@@ -93,21 +92,23 @@ export default function DashboardPage(): ReactElement {
     setOracleDetails(undefined);
 
     try {
-      const [prijaveResponse, kandidatiResponse, rankingListsResponse] = await Promise.all([
-        listPrijaveRequest(token, {
-          page: 1,
-          pageSize: 5000,
-          sortBy: "datum_prijave",
-          sortDirection: "desc",
-        }),
-        listKandidatiRequest(token, {
-          page: 1,
-          pageSize: 5000,
-          sortBy: "ime_prezime",
-          sortDirection: "asc",
-        }),
-        listRankingListsRequest(token),
-      ]);
+      const [prijaveResponse, kandidatiResponse, finalizationSummaryResponse, auditResponse] =
+        await Promise.all([
+          listPrijaveRequest(token, {
+            page: 1,
+            pageSize: 5000,
+            sortBy: "datum_prijave",
+            sortDirection: "desc",
+          }),
+          listKandidatiRequest(token, {
+            page: 1,
+            pageSize: 5000,
+            sortBy: "ime_prezime",
+            sortDirection: "asc",
+          }),
+          getEnrollmentFinalizationSummaryRequest(token, getCurrentCycleLabel()),
+          listAuditLogsRequest(token, 200),
+        ]);
 
       const prijaveRows = prijaveResponse.data.rows ?? [];
       const kandidatiRows = kandidatiResponse.data.rows ?? [];
@@ -115,15 +116,7 @@ export default function DashboardPage(): ReactElement {
       const approvedPrijave = prijaveRows.filter((row) => row.statusPrijave === "Odobrena").length;
       const rejectedPrijave = prijaveRows.filter((row) => row.statusPrijave === "Odbijena").length;
 
-      const rankingItemResponses = await Promise.all(
-        (rankingListsResponse.data.rows ?? [])
-          .filter((row) => row.idRangListe != null)
-          .map((row) => listRankingItemsRequest(token, Number(row.idRangListe))),
-      );
-
-      const enrolledStudents = rankingItemResponses
-        .flatMap((response) => response.data.rows ?? [])
-        .filter((item) => item.status === "Approved").length;
+      const enrolledStudents = finalizationSummaryResponse.data.ukupnoFinalizovanihUpisa ?? 0;
 
       setMetrics({
         totalPrijave: prijaveRows.length,
@@ -133,18 +126,19 @@ export default function DashboardPage(): ReactElement {
         totalKandidati: kandidatiRows.length,
       });
 
-      const mappedActivities: DashboardActivityRow[] = prijaveRows
+      const mappedActivities: DashboardActivityRow[] = (auditResponse.data.rows ?? [])
         .map((row) => {
-          const status = buildStatusLabel(row.statusPrijave);
-          const sourceDate = row.sistemskiUpdate ?? row.datumPrijave;
+          const moduleName = moduleLabels[row.tableName] ?? row.tableName;
+          const operation = operationLabels[row.operation] ?? row.operation;
+          const entityKey = row.entityKey ? ` (${row.entityKey})` : "";
+          const details = row.details ? ` - ${row.details}` : "";
 
           return {
-            time: toTimeLabel(sourceDate),
-            module: "Prijava",
-            description: `Prijava P-${row.brojPrijave} (${row.skolskaGodina}) ima status ${status}`,
-            user: "admin",
-            status,
-            timestamp: toTimestamp(sourceDate),
+            time: toTimeLabel(row.eventTime),
+            module: moduleName,
+            description: `${operation}${entityKey}${details}`,
+            user: row.dbUser ?? "-",
+            timestamp: toTimestamp(row.eventTime),
           };
         })
         .sort((a, b) => b.timestamp - a.timestamp)
@@ -163,30 +157,6 @@ export default function DashboardPage(): ReactElement {
   useEffect(() => {
     void loadDashboardData();
   }, [token]);
-
-  const filteredRows = useMemo(() => {
-    const normalizedSearch = searchValue.trim().toLowerCase();
-
-    let rows = activityRows.filter((row) => {
-      if (statusValue !== "svi") {
-        return row.status === statusValue;
-      }
-
-      return true;
-    });
-
-    if (normalizedSearch) {
-      rows = rows.filter((row) =>
-        [row.description, row.module, row.user].join(" ").toLowerCase().includes(normalizedSearch),
-      );
-    }
-
-    rows = [...rows].sort((a, b) =>
-      sortValue === "datum_asc" ? a.timestamp - b.timestamp : b.timestamp - a.timestamp,
-    );
-
-    return rows;
-  }, [activityRows, searchValue, sortValue, statusValue]);
 
   return (
     <main className="min-h-screen bg-slate-100 p-6">
@@ -243,25 +213,6 @@ export default function DashboardPage(): ReactElement {
             <p className="mt-2 text-3xl font-bold">{metrics.enrolledStudents}</p>
           </article>
         </section>
-        <FilterBar
-          searchValue={searchValue}
-          onSearchChange={setSearchValue}
-          sortValue={sortValue}
-          onSortChange={setSortValue}
-          sortOptions={[
-            { value: "datum_desc", label: "Datum (opadajuce)" },
-            { value: "datum_asc", label: "Datum (rastuce)" },
-          ]}
-          statusValue={statusValue}
-          onStatusChange={setStatusValue}
-          statusOptions={[
-            { value: "svi", label: "Svi statusi" },
-            { value: "Odobrena", label: "Odobrena" },
-            { value: "Podneta", label: "Podneta" },
-            { value: "Odbijena", label: "Odbijena" },
-          ]}
-        />
-
         <div className="flex justify-end">
           <button
             type="button"
@@ -275,7 +226,7 @@ export default function DashboardPage(): ReactElement {
 
         <DataTable
           title="Poslednje aktivnosti"
-          rows={filteredRows}
+          rows={activityRows}
           emptyMessage="Nema aktivnosti za prikaz."
           columns={[
             { key: "time", header: "Vreme", render: (row) => row.time },

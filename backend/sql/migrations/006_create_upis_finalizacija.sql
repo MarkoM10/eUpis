@@ -1,0 +1,165 @@
+DECLARE
+  table_count NUMBER := 0;
+BEGIN
+  SELECT COUNT(*)
+  INTO table_count
+  FROM user_tables
+  WHERE table_name = 'UPIS_FINALIZACIJA';
+
+  IF table_count = 0 THEN
+    EXECUTE IMMEDIATE q'[
+      CREATE TABLE UPIS_FINALIZACIJA (
+        ID_UPISA NUMBER NOT NULL,
+        BROJ_PRIJAVE NUMBER NOT NULL,
+        SKOLSKA_GODINA VARCHAR2(20) NOT NULL,
+        STATUS_UPISA VARCHAR2(30) NOT NULL,
+        UGOVOR_FILE_NAME VARCHAR2(255),
+        UGOVOR_MIME_TYPE VARCHAR2(120),
+        UGOVOR_FILE_SIZE NUMBER,
+        UGOVOR_FILE_CONTENT BLOB,
+        UGOVOR_UPLOADED_AT DATE,
+        BROJ_INDEKSA VARCHAR2(40),
+        DATUM_UPISA DATE,
+        POTVRDIO_ADMIN_ID NUMBER,
+        CREATED_AT DATE DEFAULT SYSDATE NOT NULL,
+        UPDATED_AT DATE DEFAULT SYSDATE NOT NULL
+      )
+    ]';
+  END IF;
+END;
+/
+
+DECLARE
+  constraint_count NUMBER := 0;
+BEGIN
+  SELECT COUNT(*)
+  INTO constraint_count
+  FROM user_constraints
+  WHERE table_name = 'UPIS_FINALIZACIJA'
+    AND constraint_name = 'PK_UPIS_FINALIZACIJA';
+
+  IF constraint_count = 0 THEN
+    EXECUTE IMMEDIATE q'[
+      ALTER TABLE UPIS_FINALIZACIJA
+      ADD CONSTRAINT PK_UPIS_FINALIZACIJA PRIMARY KEY (ID_UPISA)
+    ]';
+  END IF;
+END;
+/
+
+DECLARE
+  constraint_count NUMBER := 0;
+BEGIN
+  SELECT COUNT(*)
+  INTO constraint_count
+  FROM user_constraints
+  WHERE table_name = 'UPIS_FINALIZACIJA'
+    AND constraint_name = 'UQ_UPIS_FINALIZACIJA_PRIJAVA';
+
+  IF constraint_count = 0 THEN
+    EXECUTE IMMEDIATE q'[
+      ALTER TABLE UPIS_FINALIZACIJA
+      ADD CONSTRAINT UQ_UPIS_FINALIZACIJA_PRIJAVA UNIQUE (BROJ_PRIJAVE, SKOLSKA_GODINA)
+    ]';
+  END IF;
+END;
+/
+
+DECLARE
+  constraint_count NUMBER := 0;
+BEGIN
+  SELECT COUNT(*)
+  INTO constraint_count
+  FROM user_constraints
+  WHERE table_name = 'UPIS_FINALIZACIJA'
+    AND constraint_name = 'UQ_UPIS_FINALIZACIJA_INDEKS';
+
+  IF constraint_count = 0 THEN
+    EXECUTE IMMEDIATE q'[
+      ALTER TABLE UPIS_FINALIZACIJA
+      ADD CONSTRAINT UQ_UPIS_FINALIZACIJA_INDEKS UNIQUE (BROJ_INDEKSA)
+    ]';
+  END IF;
+END;
+/
+
+DECLARE
+  constraint_count NUMBER := 0;
+BEGIN
+  SELECT COUNT(*)
+  INTO constraint_count
+  FROM user_constraints
+  WHERE table_name = 'UPIS_FINALIZACIJA'
+    AND constraint_name = 'CK_UPIS_FINALIZACIJA_STATUS';
+
+  IF constraint_count = 0 THEN
+    EXECUTE IMMEDIATE q'[
+      ALTER TABLE UPIS_FINALIZACIJA
+      ADD CONSTRAINT CK_UPIS_FINALIZACIJA_STATUS
+      CHECK (STATUS_UPISA IN ('ContractSubmitted', 'EnrollmentCompleted'))
+    ]';
+  END IF;
+END;
+/
+
+DECLARE
+  constraint_count NUMBER := 0;
+BEGIN
+  SELECT COUNT(*)
+  INTO constraint_count
+  FROM user_constraints
+  WHERE table_name = 'UPIS_FINALIZACIJA'
+    AND constraint_name = 'FK_UPIS_FINALIZACIJA_PRIJAVA';
+
+  IF constraint_count = 0 THEN
+    EXECUTE IMMEDIATE q'[
+      ALTER TABLE UPIS_FINALIZACIJA
+      ADD CONSTRAINT FK_UPIS_FINALIZACIJA_PRIJAVA
+      FOREIGN KEY (BROJ_PRIJAVE, SKOLSKA_GODINA)
+      REFERENCES PRIJAVA (BROJ_PRIJAVE, SKOLSKA_GODINA)
+    ]';
+  END IF;
+END;
+/
+
+DECLARE
+  constraint_count NUMBER := 0;
+BEGIN
+  SELECT COUNT(*)
+  INTO constraint_count
+  FROM user_constraints
+  WHERE table_name = 'UPIS_FINALIZACIJA'
+    AND constraint_name = 'FK_UPIS_FINALIZACIJA_ADMIN';
+
+  IF constraint_count = 0 THEN
+    EXECUTE IMMEDIATE q'[
+      ALTER TABLE UPIS_FINALIZACIJA
+      ADD CONSTRAINT FK_UPIS_FINALIZACIJA_ADMIN
+      FOREIGN KEY (POTVRDIO_ADMIN_ID)
+      REFERENCES KORISNICI (ID_KORISNIKA)
+    ]';
+  END IF;
+END;
+/
+
+DECLARE
+  index_count NUMBER := 0;
+BEGIN
+  SELECT COUNT(*)
+  INTO index_count
+  FROM user_indexes
+  WHERE table_name = 'UPIS_FINALIZACIJA'
+    AND index_name = 'IDX_UPIS_FINALIZACIJA_STATUS';
+
+  IF index_count = 0 THEN
+    EXECUTE IMMEDIATE q'[
+      CREATE INDEX IDX_UPIS_FINALIZACIJA_STATUS
+      ON UPIS_FINALIZACIJA (STATUS_UPISA, SKOLSKA_GODINA)
+    ]';
+  END IF;
+END;
+/
+
+COMMENT ON TABLE UPIS_FINALIZACIJA IS 'Zavrsni koraci upisa nakon odobrenja na konacnoj rang listi';
+COMMENT ON COLUMN UPIS_FINALIZACIJA.STATUS_UPISA IS 'ContractSubmitted ili EnrollmentCompleted';
+COMMENT ON COLUMN UPIS_FINALIZACIJA.BROJ_INDEKSA IS 'Dodeljen broj indeksa nakon administrativne potvrde';

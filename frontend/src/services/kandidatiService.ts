@@ -36,17 +36,6 @@ export const getKandidatRequest = async (
   return response.data;
 };
 
-export const createKandidatRequest = async (
-  token: string,
-  payload: KandidatPayload,
-): Promise<ApiSuccess<{ created: true }>> => {
-  const response = await httpClient.post<ApiSuccess<{ created: true }>>("/kandidati", payload, {
-    headers: authHeaders(token),
-  });
-
-  return response.data;
-};
-
 export const updateKandidatRequest = async (
   token: string,
   jmbg: string,

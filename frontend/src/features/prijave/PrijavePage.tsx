@@ -40,11 +40,12 @@ type ActivePrijavaKey = {
 };
 
 const todayValue = new Date().toISOString().slice(0, 10);
+const currentSchoolYearValue = String(new Date().getFullYear());
 
 const createEmptyPrijavaForm = (isAdmin: boolean): PrijavaFormState => ({
   brojPrijave: "",
   datumPrijave: todayValue,
-  skolskaGodina: "",
+  skolskaGodina: currentSchoolYearValue,
   idPrograma: "",
   statusPrijave: isAdmin ? "" : "Podneta",
   konkursniRok: "",
@@ -742,37 +743,9 @@ export default function PrijavePage(): ReactElement {
                 onChange={(event) => onFormChange("konkursniRok", event.target.value)}
               >
                 <option value="">Izaberite konkursni rok</option>
-                <option value="May">Maj</option>
-                <option value="June">Jun</option>
-                <option value="July">Jul</option>
-                <option value="August">Avgust</option>
                 <option value="September">Septembar</option>
+                <option value="Oktobar">Oktobar</option>
               </select>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button
-                type="button"
-                className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-                onClick={() => void onStudentCreate()}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Slanje..." : "Posalji kompletnu prijavu"}
-              </button>
-              {!isAdmin && !existingStudentPrijava && studentDocumentKey ? (
-                <button
-                  type="button"
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
-                  onClick={() => {
-                    setStudentDocumentKey(null);
-                    resetDocuments();
-                    resetPrijavaForm();
-                    clearFeedback();
-                  }}
-                >
-                  Nova prijava
-                </button>
-              ) : null}
             </div>
           </section>
         ) : null}
@@ -919,6 +892,31 @@ export default function PrijavePage(): ReactElement {
                 </div>
               </article>
             </div>
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                onClick={() => void onStudentCreate()}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Slanje..." : "Posalji kompletnu prijavu"}
+              </button>
+              {!isAdmin && !existingStudentPrijava && studentDocumentKey ? (
+                <button
+                  type="button"
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+                  onClick={() => {
+                    setStudentDocumentKey(null);
+                    resetDocuments();
+                    resetPrijavaForm();
+                    clearFeedback();
+                  }}
+                >
+                  Nova prijava
+                </button>
+              ) : null}
+            </div>
           </section>
         ) : null}
 
@@ -943,6 +941,9 @@ export default function PrijavePage(): ReactElement {
                 { value: "Odobrena", label: "Odobrena" },
                 { value: "Odbijena", label: "Odbijena" },
               ]}
+              onApply={() => {
+                void loadRows();
+              }}
             />
             <div className="flex justify-end">
               <button
