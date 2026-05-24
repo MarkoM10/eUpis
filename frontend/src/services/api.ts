@@ -1,6 +1,16 @@
 import axios, { AxiosError } from "axios";
 import type { ApiErrorPayload } from "../types/api/common";
 
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api";
+
+export const buildApiUrl = (path: string): string => {
+  if (path.startsWith("/")) {
+    return `${API_BASE_URL}${path}`;
+  }
+
+  return `${API_BASE_URL}/${path}`;
+};
+
 export class ApiClientError extends Error {
   title: string;
   oracleDetails?: string;
@@ -11,16 +21,6 @@ export class ApiClientError extends Error {
     this.oracleDetails = payload.oracleDetails;
   }
 }
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api";
-
-export const httpClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
 
 export const toApiClientError = (error: unknown): ApiClientError => {
   if (error instanceof ApiClientError) {

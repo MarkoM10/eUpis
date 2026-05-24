@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { OracleMessageCard } from "../../components/feedback/OracleMessageCard";
 import { DataTable } from "../../components/ui/DataTable";
-import { toApiClientError } from "../../services/httpClient";
+import { toApiClientError } from "../../services/api";
 import {
   confirmEnrollmentFinalizationRequest,
   downloadEnrollmentContractByPrijavaRequest,
@@ -24,7 +24,8 @@ import type {
   StudentAdmissionStatus,
   StudyProgramOption,
 } from "../../types/models/upis";
-import { useAuth } from "../auth/authStore";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+import { logoutSuccess } from "../../redux/slices/authSlice";
 
 const getCurrentSchoolYear = (): string => {
   const year = new Date().getFullYear();
@@ -70,8 +71,13 @@ const triggerFileDownload = (blob: Blob, fileName: string): void => {
 };
 
 export default function UpisPage(): ReactElement {
-  const { token, role, logout } = useAuth();
+  const dispatch = useAppDispatch();
+  const token = useAppSelector((state) => state.auth.token);
+  const role = useAppSelector((state) => state.auth.role);
   const isAdmin = role === "admin";
+  const handleLogout = (): void => {
+    dispatch(logoutSuccess());
+  };
 
   const [programs, setPrograms] = useState<StudyProgramOption[]>([]);
   const [selectedProgramId, setSelectedProgramId] = useState<string>("");
@@ -481,7 +487,7 @@ export default function UpisPage(): ReactElement {
               <button
                 type="button"
                 className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
-                onClick={logout}
+                onClick={handleLogout}
               >
                 Odjavi se
               </button>

@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../auth/authStore";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+import { logoutSuccess } from "../../redux/slices/authSlice";
 import { DataTable } from "../../components/ui/DataTable";
 import { OracleMessageCard } from "../../components/feedback/OracleMessageCard";
-import { toApiClientError } from "../../services/httpClient";
+import { toApiClientError } from "../../services/api";
 import { listAuditLogsRequest } from "../../services/auditService";
 import { listPrijaveRequest } from "../../services/prijaveService";
 import { getEnrollmentFinalizationSummaryRequest } from "../../services/upisService";
@@ -72,12 +73,17 @@ const emptyMetrics: DashboardMetrics = {
 };
 
 export default function DashboardPage(): ReactElement {
-  const { logout, token } = useAuth();
+  const dispatch = useAppDispatch();
+  const token = useAppSelector((state) => state.auth.token);
   const [metrics, setMetrics] = useState<DashboardMetrics>(emptyMetrics);
   const [activityRows, setActivityRows] = useState<DashboardActivityRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [oracleDetails, setOracleDetails] = useState<string | undefined>(undefined);
+
+  const handleLogout = (): void => {
+    dispatch(logoutSuccess());
+  };
 
   const loadDashboardData = async (): Promise<void> => {
     if (!token) {
@@ -176,7 +182,7 @@ export default function DashboardPage(): ReactElement {
             <button
               type="button"
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
-              onClick={logout}
+              onClick={handleLogout}
             >
               Odjavi se
             </button>

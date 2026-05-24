@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from "../../app/hooks";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+import { logoutSuccess, updateAuthSession } from "../../redux/slices/authSlice";
 import { OracleMessageCard } from "../../components/feedback/OracleMessageCard";
 import { DataTable } from "../../components/ui/DataTable";
 import { FilterBar } from "../../components/ui/FilterBar";
 import { sessionRequest } from "../../services/authService";
-import { toApiClientError } from "../../services/httpClient";
+import { toApiClientError } from "../../services/api";
 import { listStudyProgramsRequest } from "../../services/upisService";
 import {
   createPrijavaRequest,
@@ -23,7 +24,6 @@ import type { PrijavaFormState } from "../../types/forms/prijavaForm";
 import type { PrijavaDocumentsRecord } from "../../types/models/prijavaDocument";
 import type { Prijava, PrijavaPayload } from "../../types/models/prijava";
 import type { StudyProgramOption } from "../../types/models/upis";
-import { useAuth } from "../auth/authStore";
 import {
   clearPrijaveError,
   loadFakulteti,
@@ -31,7 +31,7 @@ import {
   setPrijavaSearch,
   setPrijavaSortValue,
   setPrijavaStatusFilter,
-} from "./prijaveSlice";
+} from "../../redux/slices/prijaveSlice";
 import StudentPrijavaSummaryCard from "./StudentPrijavaSummaryCard";
 
 type ActivePrijavaKey = {
@@ -153,7 +153,9 @@ const toUverenjeForm = (
 
 export default function PrijavePage(): ReactElement {
   const dispatch = useAppDispatch();
-  const { token, username, role, updateSession, logout } = useAuth();
+  const token = useAppSelector((state) => state.auth.token);
+  const username = useAppSelector((state) => state.auth.username);
+  const role = useAppSelector((state) => state.auth.role);
   const isAdmin = role === "admin";
   const {
     rows,
@@ -197,6 +199,10 @@ export default function PrijavePage(): ReactElement {
     skolskaGodina: string,
     documentType: PrijavaDocumentType,
   ): string => `${brojPrijave}|${skolskaGodina}|${documentType}`;
+
+  const handleLogout = (): void => {
+    dispatch(logoutSuccess());
+  };
 
   const clearFeedback = (): void => {
     setSuccessMessage(null);
@@ -272,7 +278,13 @@ export default function PrijavePage(): ReactElement {
     setIsCheckingExistingPrijava(true);
     try {
       const response = await sessionRequest(token);
-      updateSession(response.data.username, response.data.role, response.data.hasApplied);
+      dispatch(
+        updateAuthSession({
+          username: response.data.username,
+          role: response.data.role,
+          hasApplied: response.data.hasApplied,
+        }),
+      );
 
       const latestPrijava = response.data.latestPrijava;
       setExistingStudentPrijava(latestPrijava);
@@ -579,7 +591,13 @@ export default function PrijavePage(): ReactElement {
       }
 
       setStudentDocumentKey(key);
-      updateSession(username ?? form.jmbg, "student", true);
+      dispatch(
+        updateAuthSession({
+          username: username ?? form.jmbg,
+          role: "student",
+          hasApplied: true,
+        }),
+      );
       await loadDocuments(key);
       setSuccessMessage("Prijava i dokumentacija su uspesno poslati.");
     } catch (error) {
@@ -627,7 +645,7 @@ export default function PrijavePage(): ReactElement {
               <button
                 type="button"
                 className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
-                onClick={logout}
+                onClick={handleLogout}
               >
                 Odjavi se
               </button>

@@ -1,10 +1,10 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from "../../app/hooks";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { OracleMessageCard } from "../../components/feedback/OracleMessageCard";
 import { DataTable } from "../../components/ui/DataTable";
 import { FilterBar } from "../../components/ui/FilterBar";
-import { toApiClientError } from "../../services/httpClient";
+import { toApiClientError } from "../../services/api";
 import {
   deleteKandidatRequest,
   getKandidatRequest,
@@ -12,14 +12,13 @@ import {
 } from "../../services/kandidatiService";
 import type { KandidatPayload } from "../../types/models/kandidat";
 import type { KandidatFormState } from "../../types/forms/kandidatForm";
-import { useAuth } from "../auth/authStore";
 import {
   clearKandidatiError,
   loadKandidati,
   setKandidatiSearch,
   setKandidatiSortValue,
   setTipKandidataFilter,
-} from "./kandidatiSlice";
+} from "../../redux/slices/kandidatiSlice";
 
 const emptyForm: KandidatFormState = {
   jmbg: "",
@@ -45,7 +44,7 @@ const toPayload = (form: KandidatFormState): KandidatPayload => ({
 
 export default function KandidatiPage(): ReactElement {
   const dispatch = useAppDispatch();
-  const { token } = useAuth();
+  const token = useAppSelector((state) => state.auth.token);
   const { rows, search, sortValue, tipKandidataFilter, isLoading, errorMessage, oracleDetails } =
     useAppSelector((state) => state.kandidati);
 

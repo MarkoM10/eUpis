@@ -1,7 +1,7 @@
 import { configureStore } from "@reduxjs/toolkit";
-import authReducer from "../features/auth/authSlice.ts";
-import kandidatiReducer from "../features/kandidati/kandidatiSlice.ts";
-import prijaveReducer from "../features/prijave/prijaveSlice.ts";
+import authReducer from "./slices/authSlice";
+import kandidatiReducer from "./slices/kandidatiSlice";
+import prijaveReducer from "./slices/prijaveSlice";
 
 export const store = configureStore({
   reducer: {

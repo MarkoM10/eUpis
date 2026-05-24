@@ -1,11 +1,12 @@
 import { useState, type FormEvent, type ReactElement } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAppDispatch } from "../../redux/hooks";
+import { loginSuccess } from "../../redux/slices/authSlice";
 import { loginRequest, registerRequest } from "../../services/authService";
-import { ApiClientError, toApiClientError } from "../../services/httpClient";
-import { useAuth } from "./authStore";
+import { ApiClientError, toApiClientError } from "../../services/api";
 
 export default function LoginPage(): ReactElement {
-  const { login } = useAuth();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -32,12 +33,13 @@ export default function LoginPage(): ReactElement {
           ? await loginRequest({ username, password })
           : await registerRequest({ username, password, email });
 
-      login(
-        response.data.token,
-        response.data.username,
-        response.data.role,
-        response.data.hasApplied,
-        response.data.latestPrijava,
+      dispatch(
+        loginSuccess({
+          token: response.data.token,
+          username: response.data.username,
+          role: response.data.role,
+          hasApplied: response.data.hasApplied,
+        }),
       );
       navigate(response.data.role === "admin" ? "/dashboard" : "/prijave");
     } catch (error) {

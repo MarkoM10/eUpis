@@ -1,3 +1,4 @@
+import axios from "axios";
 import type { ApiSuccess } from "../types/api/common";
 import type {
   DownloadedPrijavaDocument,
@@ -6,7 +7,7 @@ import type {
   PrijavaDocumentsRecord,
 } from "../types/models/prijavaDocument";
 import type { Prijava, PrijavaListResponse, PrijavaPayload } from "../types/models/prijava";
-import { httpClient } from "./httpClient";
+import { buildApiUrl } from "./api";
 
 const authHeaders = (token: string) => ({
   Authorization: `Bearer ${token}`,
@@ -54,7 +55,7 @@ export const listPrijaveRequest = async (
     pageSize?: number;
   } = {},
 ): Promise<ApiSuccess<PrijavaListResponse>> => {
-  const response = await httpClient.get<ApiSuccess<PrijavaListResponse>>("/prijave", {
+  const response = await axios.get<ApiSuccess<PrijavaListResponse>>(buildApiUrl("/prijave"), {
     headers: authHeaders(token),
     params,
   });
@@ -67,8 +68,8 @@ export const getPrijavaRequest = async (
   brojPrijave: number,
   skolskaGodina: string,
 ): Promise<ApiSuccess<Prijava>> => {
-  const response = await httpClient.get<ApiSuccess<Prijava>>(
-    buildPrijavaPath(brojPrijave, skolskaGodina),
+  const response = await axios.get<ApiSuccess<Prijava>>(
+    buildApiUrl(buildPrijavaPath(brojPrijave, skolskaGodina)),
     {
       headers: authHeaders(token),
     },
@@ -82,8 +83,8 @@ export const getPrijavaDocumentsRequest = async (
   brojPrijave: number,
   skolskaGodina: string,
 ): Promise<ApiSuccess<PrijavaDocumentsRecord>> => {
-  const response = await httpClient.get<ApiSuccess<PrijavaDocumentsRecord>>(
-    `${buildPrijavaPath(brojPrijave, skolskaGodina)}/documents`,
+  const response = await axios.get<ApiSuccess<PrijavaDocumentsRecord>>(
+    buildApiUrl(`${buildPrijavaPath(brojPrijave, skolskaGodina)}/documents`),
     {
       headers: authHeaders(token),
     },
@@ -96,9 +97,9 @@ export const createPrijavaRequest = async (
   token: string,
   payload: PrijavaPayload,
 ): Promise<ApiSuccess<{ created: true; brojPrijave: number; skolskaGodina: string }>> => {
-  const response = await httpClient.post<
+  const response = await axios.post<
     ApiSuccess<{ created: true; brojPrijave: number; skolskaGodina: string }>
-  >("/prijave", payload, {
+  >(buildApiUrl("/prijave"), payload, {
     headers: authHeaders(token),
   });
 
@@ -120,8 +121,8 @@ export const uploadPrijavaDocumentRequest = async (
     appendFormValue(formData, key, value);
   });
 
-  const response = await httpClient.post<ApiSuccess<PrijavaDocumentSummary>>(
-    `${buildPrijavaPath(brojPrijave, skolskaGodina)}/documents/${documentType}`,
+  const response = await axios.post<ApiSuccess<PrijavaDocumentSummary>>(
+    buildApiUrl(`${buildPrijavaPath(brojPrijave, skolskaGodina)}/documents/${documentType}`),
     formData,
     {
       headers: {
@@ -140,8 +141,10 @@ export const downloadPrijavaDocumentRequest = async (
   skolskaGodina: string,
   documentType: PrijavaDocumentType,
 ): Promise<DownloadedPrijavaDocument> => {
-  const response = await httpClient.get<Blob>(
-    `${buildPrijavaPath(brojPrijave, skolskaGodina)}/documents/${documentType}/download`,
+  const response = await axios.get<Blob>(
+    buildApiUrl(
+      `${buildPrijavaPath(brojPrijave, skolskaGodina)}/documents/${documentType}/download`,
+    ),
     {
       headers: authHeaders(token),
       responseType: "blob",
@@ -163,8 +166,8 @@ export const updatePrijavaRequest = async (
   skolskaGodina: string,
   payload: PrijavaPayload,
 ): Promise<ApiSuccess<{ updated: true }>> => {
-  const response = await httpClient.put<ApiSuccess<{ updated: true }>>(
-    buildPrijavaPath(brojPrijave, skolskaGodina),
+  const response = await axios.put<ApiSuccess<{ updated: true }>>(
+    buildApiUrl(buildPrijavaPath(brojPrijave, skolskaGodina)),
     payload,
     {
       headers: authHeaders(token),
@@ -180,8 +183,8 @@ export const updatePrijavaStatusRequest = async (
   skolskaGodina: string,
   statusPrijave: "Podneta" | "Odobrena" | "Odbijena",
 ): Promise<ApiSuccess<{ updated: true }>> => {
-  const response = await httpClient.put<ApiSuccess<{ updated: true }>>(
-    `${buildPrijavaPath(brojPrijave, skolskaGodina)}/status`,
+  const response = await axios.put<ApiSuccess<{ updated: true }>>(
+    buildApiUrl(`${buildPrijavaPath(brojPrijave, skolskaGodina)}/status`),
     { statusPrijave },
     {
       headers: authHeaders(token),
@@ -196,8 +199,8 @@ export const deletePrijavaRequest = async (
   brojPrijave: number,
   skolskaGodina: string,
 ): Promise<ApiSuccess<{ deleted: true }>> => {
-  const response = await httpClient.delete<ApiSuccess<{ deleted: true }>>(
-    buildPrijavaPath(brojPrijave, skolskaGodina),
+  const response = await axios.delete<ApiSuccess<{ deleted: true }>>(
+    buildApiUrl(buildPrijavaPath(brojPrijave, skolskaGodina)),
     {
       headers: authHeaders(token),
     },

@@ -1,3 +1,4 @@
+import axios from "axios";
 import type { ApiSuccess } from "../types/api/common";
 import type {
   AuthSessionResponse,
@@ -5,10 +6,18 @@ import type {
   LoginResponse,
   RegisterRequest,
 } from "../types/models/auth";
-import { httpClient } from "./httpClient";
+import { buildApiUrl } from "./api";
 
 export const loginRequest = async (payload: LoginRequest): Promise<ApiSuccess<LoginResponse>> => {
-  const response = await httpClient.post<ApiSuccess<LoginResponse>>("/auth/login", payload);
+  const response = await axios.post<ApiSuccess<LoginResponse>>(
+    buildApiUrl("/auth/login"),
+    payload,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  );
 
   return response.data;
 };
@@ -16,15 +25,24 @@ export const loginRequest = async (payload: LoginRequest): Promise<ApiSuccess<Lo
 export const registerRequest = async (
   payload: RegisterRequest,
 ): Promise<ApiSuccess<LoginResponse>> => {
-  const response = await httpClient.post<ApiSuccess<LoginResponse>>("/auth/register", payload);
+  const response = await axios.post<ApiSuccess<LoginResponse>>(
+    buildApiUrl("/auth/register"),
+    payload,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  );
 
   return response.data;
 };
 
 export const sessionRequest = async (token: string): Promise<ApiSuccess<AuthSessionResponse>> => {
-  const response = await httpClient.get<ApiSuccess<AuthSessionResponse>>("/auth/me", {
+  const response = await axios.get<ApiSuccess<AuthSessionResponse>>(buildApiUrl("/auth/me"), {
     headers: {
       Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
   });
 

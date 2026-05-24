@@ -1,6 +1,7 @@
+import axios from "axios";
 import type { ApiSuccess } from "../types/api/common";
 import type { AuditLogRow } from "../types/models/audit";
-import { httpClient } from "./httpClient";
+import { buildApiUrl } from "./api";
 
 const authHeaders = (token: string) => ({
   Authorization: `Bearer ${token}`,
@@ -10,7 +11,7 @@ export const listAuditLogsRequest = async (
   token: string,
   limit = 200,
 ): Promise<ApiSuccess<{ rows: AuditLogRow[] }>> => {
-  const response = await httpClient.get<ApiSuccess<{ rows: AuditLogRow[] }>>("/audit", {
+  const response = await axios.get<ApiSuccess<{ rows: AuditLogRow[] }>>(buildApiUrl("/audit"), {
     headers: authHeaders(token),
     params: {
       limit,

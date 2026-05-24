@@ -1,3 +1,4 @@
+import axios from "axios";
 import type { ApiSuccess } from "../types/api/common";
 import type {
   DownloadedEnrollmentContract,
@@ -9,7 +10,7 @@ import type {
   StudentAdmissionStatus,
   StudyProgramOption,
 } from "../types/models/upis";
-import { httpClient } from "./httpClient";
+import { buildApiUrl } from "./api";
 
 const authHeaders = (token: string) => ({
   Authorization: `Bearer ${token}`,
@@ -32,8 +33,8 @@ const getFileNameFromDisposition = (contentDisposition?: string): string | null 
 export const listStudyProgramsRequest = async (
   token: string,
 ): Promise<ApiSuccess<{ rows: StudyProgramOption[] }>> => {
-  const response = await httpClient.get<ApiSuccess<{ rows: StudyProgramOption[] }>>(
-    "/upis/programi",
+  const response = await axios.get<ApiSuccess<{ rows: StudyProgramOption[] }>>(
+    buildApiUrl("/upis/programi"),
     {
       headers: authHeaders(token),
     },
@@ -46,8 +47,8 @@ export const listEligiblePrijaveRequest = async (
   token: string,
   skolskaGodina?: string,
 ): Promise<ApiSuccess<{ rows: EligiblePrijavaRow[] }>> => {
-  const response = await httpClient.get<ApiSuccess<{ rows: EligiblePrijavaRow[] }>>(
-    "/upis/eligible-prijave",
+  const response = await axios.get<ApiSuccess<{ rows: EligiblePrijavaRow[] }>>(
+    buildApiUrl("/upis/eligible-prijave"),
     {
       headers: authHeaders(token),
       params: {
@@ -67,8 +68,8 @@ export const saveExamScoreRequest = async (
     brojPoena: number;
   },
 ): Promise<ApiSuccess<{ idStavke: number }>> => {
-  const response = await httpClient.post<ApiSuccess<{ idStavke: number }>>(
-    "/upis/rezultati",
+  const response = await axios.post<ApiSuccess<{ idStavke: number }>>(
+    buildApiUrl("/upis/rezultati"),
     payload,
     {
       headers: authHeaders(token),
@@ -93,14 +94,14 @@ export const generateFinalRankingRequest = async (
     rejectedCount: number;
   }>
 > => {
-  const response = await httpClient.post<
+  const response = await axios.post<
     ApiSuccess<{
       idRangListe: number;
       totalCandidates: number;
       approvedCount: number;
       rejectedCount: number;
     }>
-  >("/upis/rang-liste/generate-final", payload, {
+  >(buildApiUrl("/upis/rang-liste/generate-final"), payload, {
     headers: authHeaders(token),
   });
 
@@ -111,8 +112,8 @@ export const listRankingListsRequest = async (
   token: string,
   params: { idPrograma?: number; skolskaGodina?: string } = {},
 ): Promise<ApiSuccess<{ rows: RankingListSummary[] }>> => {
-  const response = await httpClient.get<ApiSuccess<{ rows: RankingListSummary[] }>>(
-    "/upis/rang-liste",
+  const response = await axios.get<ApiSuccess<{ rows: RankingListSummary[] }>>(
+    buildApiUrl("/upis/rang-liste"),
     {
       headers: authHeaders(token),
       params,
@@ -126,8 +127,8 @@ export const listRankingItemsRequest = async (
   token: string,
   idRangListe: number,
 ): Promise<ApiSuccess<{ rows: RankingItem[] }>> => {
-  const response = await httpClient.get<ApiSuccess<{ rows: RankingItem[] }>>(
-    `/upis/rang-liste/${idRangListe}/stavke`,
+  const response = await axios.get<ApiSuccess<{ rows: RankingItem[] }>>(
+    buildApiUrl(`/upis/rang-liste/${idRangListe}/stavke`),
     {
       headers: authHeaders(token),
     },
@@ -139,8 +140,8 @@ export const listRankingItemsRequest = async (
 export const getStudentAdmissionStatusRequest = async (
   token: string,
 ): Promise<ApiSuccess<StudentAdmissionStatus>> => {
-  const response = await httpClient.get<ApiSuccess<StudentAdmissionStatus>>(
-    "/upis/student-status",
+  const response = await axios.get<ApiSuccess<StudentAdmissionStatus>>(
+    buildApiUrl("/upis/student-status"),
     {
       headers: authHeaders(token),
     },
@@ -158,9 +159,9 @@ export const uploadSignedEnrollmentContractRequest = async (
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await httpClient.post<
+  const response = await axios.post<
     ApiSuccess<{ idUpisa: number; statusUpisa: string; signedContractUploadedAt: string | null }>
-  >("/upis/finalizacija/ugovor", formData, {
+  >(buildApiUrl("/upis/finalizacija/ugovor"), formData, {
     headers: {
       ...authHeaders(token),
       "Content-Type": "multipart/form-data",
@@ -173,7 +174,7 @@ export const uploadSignedEnrollmentContractRequest = async (
 export const downloadStudentEnrollmentContractRequest = async (
   token: string,
 ): Promise<DownloadedEnrollmentContract> => {
-  const response = await httpClient.get<Blob>("/upis/finalizacija/ugovor/download", {
+  const response = await axios.get<Blob>(buildApiUrl("/upis/finalizacija/ugovor/download"), {
     headers: authHeaders(token),
     responseType: "blob",
   });
@@ -191,8 +192,8 @@ export const listPendingEnrollmentFinalizationsRequest = async (
   token: string,
   skolskaGodina?: string,
 ): Promise<ApiSuccess<{ rows: PendingEnrollmentFinalizationRow[] }>> => {
-  const response = await httpClient.get<ApiSuccess<{ rows: PendingEnrollmentFinalizationRow[] }>>(
-    "/upis/finalizacija/pending",
+  const response = await axios.get<ApiSuccess<{ rows: PendingEnrollmentFinalizationRow[] }>>(
+    buildApiUrl("/upis/finalizacija/pending"),
     {
       headers: authHeaders(token),
       params: {
@@ -208,8 +209,8 @@ export const getEnrollmentFinalizationSummaryRequest = async (
   token: string,
   skolskaGodina?: string,
 ): Promise<ApiSuccess<EnrollmentFinalizationSummary>> => {
-  const response = await httpClient.get<ApiSuccess<EnrollmentFinalizationSummary>>(
-    "/upis/finalizacija/summary",
+  const response = await axios.get<ApiSuccess<EnrollmentFinalizationSummary>>(
+    buildApiUrl("/upis/finalizacija/summary"),
     {
       headers: authHeaders(token),
       params: {
@@ -226,8 +227,10 @@ export const downloadEnrollmentContractByPrijavaRequest = async (
   brojPrijave: number,
   skolskaGodina: string,
 ): Promise<DownloadedEnrollmentContract> => {
-  const response = await httpClient.get<Blob>(
-    `/upis/finalizacija/${brojPrijave}/${encodeURIComponent(skolskaGodina)}/ugovor/download`,
+  const response = await axios.get<Blob>(
+    buildApiUrl(
+      `/upis/finalizacija/${brojPrijave}/${encodeURIComponent(skolskaGodina)}/ugovor/download`,
+    ),
     {
       headers: authHeaders(token),
       responseType: "blob",
@@ -248,11 +251,15 @@ export const confirmEnrollmentFinalizationRequest = async (
   brojPrijave: number,
   skolskaGodina: string,
 ): Promise<ApiSuccess<{ brojIndeksa: string | null; datumUpisa: string | null }>> => {
-  const response = await httpClient.post<
+  const response = await axios.post<
     ApiSuccess<{ brojIndeksa: string | null; datumUpisa: string | null }>
-  >(`/upis/finalizacija/${brojPrijave}/${encodeURIComponent(skolskaGodina)}/potvrdi`, undefined, {
-    headers: authHeaders(token),
-  });
+  >(
+    buildApiUrl(`/upis/finalizacija/${brojPrijave}/${encodeURIComponent(skolskaGodina)}/potvrdi`),
+    undefined,
+    {
+      headers: authHeaders(token),
+    },
+  );
 
   return response.data;
 };

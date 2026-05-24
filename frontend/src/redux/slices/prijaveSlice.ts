@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { RootState } from "../../app/store";
-import { toApiClientError } from "../../services/httpClient";
+import type { RootState } from "../store";
+import { toApiClientError } from "../../services/api";
 import { listFakultetiRequest } from "../../services/metaService";
 import { listPrijaveRequest } from "../../services/prijaveService";
 import type { FakultetOption } from "../../types/models/fakultet";
