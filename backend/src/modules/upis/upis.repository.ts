@@ -62,9 +62,6 @@ type EnrollmentFinalizationRow = {
   BROJ_PRIJAVE: number;
   SKOLSKA_GODINA: string;
   STATUS_UPISA: "UgovorOtpremljen" | "UpisZavrsen";
-  UGOVOR_FILE_NAME: string | null;
-  UGOVOR_MIME_TYPE: string | null;
-  UGOVOR_FILE_SIZE: number | null;
   UGOVOR_UPLOADED_AT: Date | null;
   BROJ_INDEKSA: string | null;
   DATUM_UPISA: Date | null;
@@ -88,7 +85,6 @@ type PendingEnrollmentFinalizationDbRow = {
   RANG_MESTO: number | null;
   STATUS_UPISA: "UgovorOtpremljen" | "UpisZavrsen";
   UGOVOR_UPLOADED_AT: Date | null;
-  UGOVOR_FILE_NAME: string | null;
 };
 
 type EnrollmentFinalizationSummaryRow = {
@@ -147,9 +143,6 @@ const mapEnrollmentFinalization = (
   brojPrijave: row.BROJ_PRIJAVE,
   skolskaGodina: row.SKOLSKA_GODINA,
   statusUpisa: row.STATUS_UPISA,
-  contractFileName: row.UGOVOR_FILE_NAME,
-  contractMimeType: row.UGOVOR_MIME_TYPE,
-  contractFileSize: row.UGOVOR_FILE_SIZE,
   hasSignedContract: row.HAS_SIGNED_CONTRACT === 1,
   signedContractUploadedAt: row.UGOVOR_UPLOADED_AT ? row.UGOVOR_UPLOADED_AT.toISOString() : null,
   brojIndeksa: row.BROJ_INDEKSA,
@@ -168,7 +161,6 @@ const mapPendingEnrollmentFinalization = (
   rangMesto: row.RANG_MESTO,
   statusUpisa: row.STATUS_UPISA,
   signedContractUploadedAt: row.UGOVOR_UPLOADED_AT ? row.UGOVOR_UPLOADED_AT.toISOString() : null,
-  contractFileName: row.UGOVOR_FILE_NAME,
 });
 
 const getNextValue = async (
@@ -568,9 +560,6 @@ export const getEnrollmentFinalizationByPrijava = async (
         uf.broj_prijave,
         uf.skolska_godina,
         uf.status_upisa,
-        uf.ugovor_file_name,
-        uf.ugovor_mime_type,
-        uf.ugovor_file_size,
         uf.ugovor_uploaded_at,
         uf.broj_indeksa,
         uf.datum_upisa,
@@ -732,8 +721,7 @@ export const listPendingEnrollmentFinalizations = async (
         s.broj_poena,
         s.rang_mesto,
         uf.status_upisa,
-        uf.ugovor_uploaded_at,
-        uf.ugovor_file_name
+        uf.ugovor_uploaded_at
       FROM Upis_Finalizacija uf
       JOIN Prijava p
         ON p.broj_prijave = uf.broj_prijave

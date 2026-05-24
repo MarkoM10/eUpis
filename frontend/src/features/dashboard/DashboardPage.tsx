@@ -5,7 +5,6 @@ import { DataTable } from "../../components/ui/DataTable";
 import { OracleMessageCard } from "../../components/feedback/OracleMessageCard";
 import { toApiClientError } from "../../services/httpClient";
 import { listAuditLogsRequest } from "../../services/auditService";
-import { listKandidatiRequest } from "../../services/kandidatiService";
 import { listPrijaveRequest } from "../../services/prijaveService";
 import { getEnrollmentFinalizationSummaryRequest } from "../../services/upisService";
 import type { ActivityRow } from "../../types/models/dashboard";
@@ -63,7 +62,6 @@ interface DashboardMetrics {
   approvedPrijave: number;
   rejectedPrijave: number;
   enrolledStudents: number;
-  totalKandidati: number;
 }
 
 const emptyMetrics: DashboardMetrics = {
@@ -71,7 +69,6 @@ const emptyMetrics: DashboardMetrics = {
   approvedPrijave: 0,
   rejectedPrijave: 0,
   enrolledStudents: 0,
-  totalKandidati: 0,
 };
 
 export default function DashboardPage(): ReactElement {
@@ -92,26 +89,18 @@ export default function DashboardPage(): ReactElement {
     setOracleDetails(undefined);
 
     try {
-      const [prijaveResponse, kandidatiResponse, finalizationSummaryResponse, auditResponse] =
-        await Promise.all([
-          listPrijaveRequest(token, {
-            page: 1,
-            pageSize: 5000,
-            sortBy: "datum_prijave",
-            sortDirection: "desc",
-          }),
-          listKandidatiRequest(token, {
-            page: 1,
-            pageSize: 5000,
-            sortBy: "ime_prezime",
-            sortDirection: "asc",
-          }),
-          getEnrollmentFinalizationSummaryRequest(token, getCurrentCycleLabel()),
-          listAuditLogsRequest(token, 200),
-        ]);
+      const [prijaveResponse, finalizationSummaryResponse, auditResponse] = await Promise.all([
+        listPrijaveRequest(token, {
+          page: 1,
+          pageSize: 5000,
+          sortBy: "datum_prijave",
+          sortDirection: "desc",
+        }),
+        getEnrollmentFinalizationSummaryRequest(token, getCurrentCycleLabel()),
+        listAuditLogsRequest(token, 200),
+      ]);
 
       const prijaveRows = prijaveResponse.data.rows ?? [];
-      const kandidatiRows = kandidatiResponse.data.rows ?? [];
 
       const approvedPrijave = prijaveRows.filter((row) => row.statusPrijave === "Odobrena").length;
       const rejectedPrijave = prijaveRows.filter((row) => row.statusPrijave === "Odbijena").length;
@@ -123,7 +112,6 @@ export default function DashboardPage(): ReactElement {
         approvedPrijave,
         rejectedPrijave,
         enrolledStudents,
-        totalKandidati: kandidatiRows.length,
       });
 
       const mappedActivities: DashboardActivityRow[] = (auditResponse.data.rows ?? [])

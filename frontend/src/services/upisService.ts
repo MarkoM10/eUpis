@@ -107,23 +107,6 @@ export const generateFinalRankingRequest = async (
   return response.data;
 };
 
-export const finalizeRankingRequest = async (
-  token: string,
-  idRangListe: number,
-): Promise<ApiSuccess<{ approvedCount: number; rejectedCount: number }>> => {
-  const response = await httpClient.post<
-    ApiSuccess<{ approvedCount: number; rejectedCount: number }>
-  >(
-    "/upis/rang-liste/finalize",
-    { idRangListe },
-    {
-      headers: authHeaders(token),
-    },
-  );
-
-  return response.data;
-};
-
 export const listRankingListsRequest = async (
   token: string,
   params: { idPrograma?: number; skolskaGodina?: string } = {},

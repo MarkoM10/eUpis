@@ -71,7 +71,7 @@ export default function LoginPage(): ReactElement {
                 3. Prati status svoje prijave i sačekaj rezultate konkursa
               </li>
               <li className="rounded-lg bg-white/90 p-2 text-slate-900">
-                4. Shodno rezultatima i ostalim kriterijumima rangiraj se na konacnoj rang listi
+                4. Shodno rezultatima rangiraj se na konacnoj rang listi
               </li>
             </ul>
           </section>

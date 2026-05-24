@@ -81,7 +81,6 @@ export interface PendingEnrollmentFinalizationRow {
   rangMesto: number | null;
   statusUpisa: "UgovorOtpremljen" | "UpisZavrsen";
   signedContractUploadedAt: string | null;
-  contractFileName: string | null;
 }
 
 export interface EnrollmentFinalizationSummary {

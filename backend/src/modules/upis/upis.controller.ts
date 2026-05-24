@@ -7,7 +7,6 @@ import {
   confirmEnrollmentFinalizationService,
   downloadEnrollmentContractByPrijavaService,
   downloadStudentSignedEnrollmentContractService,
-  finalizeRankingService,
   generateRankingService,
   getEnrollmentFinalizationSummaryService,
   getStudentAdmissionStatusService,
@@ -76,22 +75,6 @@ export const generateFinalRankingHandler = async (
   try {
     const result = await generateRankingService(req.body as GenerateRankingInput);
     res.json(ok("Konacna rang lista je uspesno generisana.", result));
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const finalizeRankingHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
-    const idRangListeRaw = (req.body as { idRangListe?: unknown }).idRangListe;
-    const idRangListe = Number(idRangListeRaw);
-
-    const result = await finalizeRankingService(idRangListe);
-    res.json(ok("Odluke o upisu su uspesno finalizovane.", result));
   } catch (error) {
     next(error);
   }

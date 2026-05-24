@@ -6,7 +6,6 @@ import {
   downloadEnrollmentContractByPrijavaHandler,
   downloadStudentSignedEnrollmentContractHandler,
   enrollmentContractUploadMiddleware,
-  finalizeRankingHandler,
   generateFinalRankingHandler,
   getEnrollmentFinalizationSummaryHandler,
   getStudentAdmissionStatusHandler,
@@ -27,7 +26,6 @@ upisRouter.get("/programi", requireRole("admin", "student"), listStudyProgramsHa
 upisRouter.get("/eligible-prijave", requireRole("admin"), listEligiblePrijaveHandler);
 upisRouter.post("/rezultati", requireRole("admin"), saveExamScoreHandler);
 upisRouter.post("/rang-liste/generate-final", requireRole("admin"), generateFinalRankingHandler);
-upisRouter.post("/rang-liste/finalize", requireRole("admin"), finalizeRankingHandler);
 upisRouter.get("/rang-liste", requireRole("admin", "student"), listRankingListsHandler);
 upisRouter.get(
   "/rang-liste/:idRangListe/stavke",

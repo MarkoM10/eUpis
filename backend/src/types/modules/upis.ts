@@ -88,9 +88,6 @@ export interface EnrollmentFinalizationRecord {
   brojPrijave: number;
   skolskaGodina: string;
   statusUpisa: "UgovorOtpremljen" | "UpisZavrsen";
-  contractFileName: string | null;
-  contractMimeType: string | null;
-  contractFileSize: number | null;
   hasSignedContract: boolean;
   signedContractUploadedAt: string | null;
   brojIndeksa: string | null;
@@ -114,7 +111,6 @@ export interface PendingEnrollmentFinalizationRow {
   rangMesto: number | null;
   statusUpisa: "UgovorOtpremljen" | "UpisZavrsen";
   signedContractUploadedAt: string | null;
-  contractFileName: string | null;
 }
 
 export interface EnrollmentFinalizationSummaryRecord {
