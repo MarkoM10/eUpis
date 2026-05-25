@@ -54,22 +54,6 @@ const mapPrijava = (row: PrijavaRow): AuthLatestPrijava => ({
   sistemskiUpdate: row.SISTEMSKI_UPDATE,
 });
 
-const latestPrijavaSql = `
-  SELECT
-    p.broj_prijave,
-    p.datum_prijave,
-    p.skolska_godina,
-    p.status_prijave,
-    p.konkursni_rok,
-    p.jmbg,
-    p.ime_prezime,
-    p.sistemski_update
-  FROM Prijava p
-  WHERE p.id_korisnika = :idKorisnika
-  ORDER BY p.datum_prijave DESC NULLS LAST, p.broj_prijave DESC
-  FETCH FIRST 1 ROWS ONLY
-`;
-
 export const findKorisnikByUsername = async (username: string): Promise<KorisnikRecord | null> => {
   const result = await executeSql<KorisnikRow>(
     `
@@ -180,9 +164,26 @@ export const updateKorisnikLastLogin = async (idKorisnika: number): Promise<void
 export const findLatestPrijavaForKorisnik = async (
   idKorisnika: number,
 ): Promise<AuthLatestPrijava | null> => {
-  const result = await executeSql<PrijavaRow>(latestPrijavaSql, {
-    idKorisnika,
-  });
+  const result = await executeSql<PrijavaRow>(
+    `
+      SELECT
+        p.broj_prijave,
+        p.datum_prijave,
+        p.skolska_godina,
+        p.status_prijave,
+        p.konkursni_rok,
+        p.jmbg,
+        p.ime_prezime,
+        p.sistemski_update
+      FROM Prijava p
+      WHERE p.id_korisnika = :idKorisnika
+      ORDER BY p.datum_prijave DESC NULLS LAST, p.broj_prijave DESC
+      FETCH FIRST 1 ROWS ONLY
+    `,
+    {
+      idKorisnika,
+    },
+  );
 
   const row = result.rows?.[0];
   return row ? mapPrijava(row) : null;

@@ -33,25 +33,13 @@ import {
   updateRankingItemStatus,
   updateRankingListCandidateCount,
   updateRankingListSeats,
+  updateRankingItemStudyProgram,
+  updateRankingListStudyProgram,
 } from "./upis.repository";
+import { normalizeSchoolYear } from "../../utils/utils";
 
 const allowedEnrollmentStatuses = new Set(["BodoviUneti", "Odobrena", "Odbijena"]);
 const finalizedEnrollmentStatuses = new Set(["Odobrena", "Odbijena"]);
-
-const normalizeSchoolYear = (value: string, fieldLabel = "Skolska godina"): string => {
-  const trimmed = value.trim();
-  const match = trimmed.match(/^(\d{4})/);
-
-  if (!match) {
-    throw new ApiError(
-      400,
-      "Neispravna skolska godina",
-      `${fieldLabel} mora biti u formatu YYYY, na primer 2026.`,
-    );
-  }
-
-  return match[1];
-};
 
 const toProgramLabel = (nazivPrograma: string | null, modul: string | null): string => {
   if (!nazivPrograma || !modul) {
@@ -266,7 +254,6 @@ export const saveExamScoreService = async (
     idPrograma: prijava.idPrograma,
     imePrezime: prijava.imePrezime,
     brojPoena,
-    studijskiProgram,
   });
 
   return { idStavke };
@@ -465,6 +452,28 @@ export const listRankingListsService = async (
 
 export const listRankingItemsService = async (idRangListe: number): Promise<RankingItem[]> => {
   return listRankingItemsByListId(idRangListe);
+};
+
+export const updateRankingListStudyProgramService = async (input: {
+  idRangListe: number;
+  studijskiProgram: string;
+}): Promise<void> => {
+  if (!Number.isFinite(input.idRangListe) || input.idRangListe <= 0) {
+    throw new ApiError(400, "Neispravan identifikator", "ID rang liste mora biti validan.");
+  }
+
+  await updateRankingListStudyProgram(input.idRangListe, input.studijskiProgram);
+};
+
+export const updateRankingItemStudyProgramService = async (input: {
+  idStavke: number;
+  studijskiProgram: string;
+}): Promise<void> => {
+  if (!Number.isFinite(input.idStavke) || input.idStavke <= 0) {
+    throw new ApiError(400, "Neispravan identifikator", "ID stavke mora biti validan.");
+  }
+
+  await updateRankingItemStudyProgram(input.idStavke, input.studijskiProgram);
 };
 
 export const uploadSignedEnrollmentContractService = async (input: {

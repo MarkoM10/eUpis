@@ -51,6 +51,7 @@ export const listPrijaveRequest = async (
     status_prijave?: string;
     skolska_godina?: string;
     konkursni_rok?: string;
+    partition?: string;
     page?: number;
     pageSize?: number;
   } = {},
@@ -102,6 +103,30 @@ export const createPrijavaRequest = async (
   >(buildApiUrl("/prijave"), payload, {
     headers: authHeaders(token),
   });
+
+  return response.data;
+};
+
+export const upsertStudentKandidatRequest = async (
+  token: string,
+  payload: {
+    jmbg: string | null;
+    imePrezime: string | null;
+    kandidat: {
+      emailVrednost: string | null;
+      adresaUlica: string | null;
+      adresaBroj: number | null;
+      adresaGrad: string | null;
+    } | null;
+  },
+): Promise<ApiSuccess<{ upserted: true }>> => {
+  const response = await axios.post<ApiSuccess<{ upserted: true }>>(
+    buildApiUrl("/prijave/student/kandidat"),
+    payload,
+    {
+      headers: authHeaders(token),
+    },
+  );
 
   return response.data;
 };

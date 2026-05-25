@@ -23,11 +23,6 @@ export default function LoginPage(): ReactElement {
     setErrorMessage(null);
 
     try {
-      if (mode === "register" && password !== confirmPassword) {
-        setErrorMessage("Validacija: Lozinke se ne poklapaju.");
-        return;
-      }
-
       const response =
         mode === "login"
           ? await loginRequest({ username, password })
@@ -123,7 +118,6 @@ export default function LoginPage(): ReactElement {
                 <label className="block text-sm font-medium">
                   Email
                   <input
-                    type="email"
                     className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}

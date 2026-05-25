@@ -15,6 +15,8 @@ import {
   listRankingListsHandler,
   listStudyProgramsHandler,
   saveExamScoreHandler,
+  updateRankingItemStudyProgramHandler,
+  updateRankingListStudyProgramHandler,
   uploadSignedEnrollmentContractHandler,
 } from "./upis.controller";
 
@@ -27,10 +29,20 @@ upisRouter.get("/eligible-prijave", requireRole("admin"), listEligiblePrijaveHan
 upisRouter.post("/rezultati", requireRole("admin"), saveExamScoreHandler);
 upisRouter.post("/rang-liste/generate-final", requireRole("admin"), generateFinalRankingHandler);
 upisRouter.get("/rang-liste", requireRole("admin", "student"), listRankingListsHandler);
+upisRouter.put(
+  "/rang-liste/:idRangListe/studijski-program",
+  requireRole("admin"),
+  updateRankingListStudyProgramHandler,
+);
 upisRouter.get(
   "/rang-liste/:idRangListe/stavke",
   requireRole("admin", "student"),
   listRankingItemsHandler,
+);
+upisRouter.put(
+  "/rang-liste/stavke/:idStavke/studijski-program",
+  requireRole("admin"),
+  updateRankingItemStudyProgramHandler,
 );
 upisRouter.get("/student-status", requireRole("student"), getStudentAdmissionStatusHandler);
 upisRouter.post(

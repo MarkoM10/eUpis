@@ -12,6 +12,7 @@ interface PrijaveState {
   search: string;
   sortValue: string;
   statusFilter: string;
+  partitionFilter: string;
   isLoadingRows: boolean;
   isLoadingFakulteti: boolean;
   errorMessage: string | null;
@@ -24,6 +25,7 @@ const initialState: PrijaveState = {
   search: "",
   sortValue: "broj_prijave:asc",
   statusFilter: "svi",
+  partitionFilter: "sve",
   isLoadingRows: false,
   isLoadingFakulteti: false,
   errorMessage: null,
@@ -52,6 +54,8 @@ export const loadPrijaveRows = createAsyncThunk<
       sortBy,
       sortDirection,
       status_prijave: state.prijave.statusFilter === "svi" ? undefined : state.prijave.statusFilter,
+      partition:
+        state.prijave.partitionFilter === "sve" ? undefined : state.prijave.partitionFilter,
     });
 
     return response.data.rows;
@@ -94,6 +98,9 @@ const prijaveSlice = createSlice({
     setPrijavaStatusFilter: (state, action: PayloadAction<string>) => {
       state.statusFilter = action.payload;
     },
+    setPrijavaPartitionFilter: (state, action: PayloadAction<string>) => {
+      state.partitionFilter = action.payload;
+    },
     clearPrijaveError: (state) => {
       state.errorMessage = null;
       state.oracleDetails = undefined;
@@ -131,7 +138,12 @@ const prijaveSlice = createSlice({
   },
 });
 
-export const { setPrijavaSearch, setPrijavaSortValue, setPrijavaStatusFilter, clearPrijaveError } =
-  prijaveSlice.actions;
+export const {
+  setPrijavaSearch,
+  setPrijavaSortValue,
+  setPrijavaStatusFilter,
+  setPrijavaPartitionFilter,
+  clearPrijaveError,
+} = prijaveSlice.actions;
 
 export default prijaveSlice.reducer;

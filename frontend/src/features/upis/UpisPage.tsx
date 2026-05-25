@@ -4,12 +4,9 @@ import { OracleMessageCard } from "../../components/feedback/OracleMessageCard";
 import { DataTable } from "../../components/ui/DataTable";
 import { toApiClientError } from "../../services/api";
 import {
-  confirmEnrollmentFinalizationRequest,
-  downloadEnrollmentContractByPrijavaRequest,
   downloadStudentEnrollmentContractRequest,
   generateFinalRankingRequest,
   getStudentAdmissionStatusRequest,
-  listPendingEnrollmentFinalizationsRequest,
   listEligiblePrijaveRequest,
   listRankingItemsRequest,
   listRankingListsRequest,
@@ -19,21 +16,18 @@ import {
 } from "../../services/upisService";
 import type {
   EligiblePrijavaRow,
-  PendingEnrollmentFinalizationRow,
   RankingItem,
   StudentAdmissionStatus,
   StudyProgramOption,
 } from "../../types/models/upis";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { logoutSuccess } from "../../redux/slices/authSlice";
-
-const getCurrentSchoolYear = (): string => {
-  const year = new Date().getFullYear();
-  return `${year}`;
-};
-
-const buildProgramLabel = (program: StudyProgramOption): string =>
-  `${program.nazivPrograma} | ${program.modul}`.slice(0, 100);
+import {
+  buildProgramLabel,
+  formatDateTime,
+  getCurrentYearString,
+  triggerFileDownload,
+} from "../../utils/utils";
 
 const stageDescription: Record<StudentAdmissionStatus["stage"], string> = {
   NemaPrijave: "Jos nemate podnetu prijavu.",
@@ -44,30 +38,6 @@ const stageDescription: Record<StudentAdmissionStatus["stage"], string> = {
     "Cestitamo, uspesno ste se upisali na fakultet! Potrebno je jos da otpremite potpisani ugovor.",
   UpisZavrsen: "Upis je uspesno finalizovan. Dobrodosli!",
   UpisOdbijen: "Niste upali u konacan broj mesta za upis.",
-};
-
-const formatDateTime = (value: string | null): string => {
-  if (!value) {
-    return "-";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString("sr-RS");
-};
-
-const triggerFileDownload = (blob: Blob, fileName: string): void => {
-  const url = window.URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = fileName;
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-  window.URL.revokeObjectURL(url);
 };
 
 export default function UpisPage(): ReactElement {
@@ -81,16 +51,16 @@ export default function UpisPage(): ReactElement {
 
   const [programs, setPrograms] = useState<StudyProgramOption[]>([]);
   const [selectedProgramId, setSelectedProgramId] = useState<string>("");
-  const [skolskaGodina, setSkolskaGodina] = useState<string>(getCurrentSchoolYear());
+  const [skolskaGodina, setSkolskaGodina] = useState<string>(getCurrentYearString());
+  const [hasPerformedAdminSearch, setHasPerformedAdminSearch] = useState(false);
+  const [appliedProgramId, setAppliedProgramId] = useState<string>("");
+  const [appliedSkolskaGodina, setAppliedSkolskaGodina] = useState<string>("");
 
   const [eligibleRows, setEligibleRows] = useState<EligiblePrijavaRow[]>([]);
   const [scoreByPrijava, setScoreByPrijava] = useState<Record<string, string>>({});
 
   const [selectedRankingId, setSelectedRankingId] = useState<string>("");
   const [rankingItems, setRankingItems] = useState<RankingItem[]>([]);
-  const [pendingFinalizations, setPendingFinalizations] = useState<
-    PendingEnrollmentFinalizationRow[]
-  >([]);
   const [signedContractFile, setSignedContractFile] = useState<File | null>(null);
 
   const [studentStatus, setStudentStatus] = useState<StudentAdmissionStatus | null>(null);
@@ -118,29 +88,23 @@ export default function UpisPage(): ReactElement {
     [programs, selectedProgramId],
   );
 
+  const appliedProgramOption = useMemo(
+    () => programs.find((program) => String(program.idPrograma) === appliedProgramId) ?? null,
+    [programs, appliedProgramId],
+  );
+
   const selectedProgramSeats = selectedProgramOption?.brojDostupnihMesta ?? null;
+  const appliedProgramSeats = appliedProgramOption?.brojDostupnihMesta ?? null;
 
   const filteredEligibleRows = useMemo(() => {
-    if (!selectedProgramId) {
+    if (!appliedProgramId) {
       return eligibleRows;
     }
 
     return eligibleRows.filter(
-      (row) => row.idPrograma != null && String(row.idPrograma) === selectedProgramId,
+      (row) => row.idPrograma != null && String(row.idPrograma) === appliedProgramId,
     );
-  }, [eligibleRows, selectedProgramId]);
-
-  const canGenerateFinalRanking = useMemo(() => {
-    if (!selectedProgramId || selectedProgramSeats == null || selectedProgramSeats <= 0) {
-      return false;
-    }
-
-    if (filteredEligibleRows.length === 0) {
-      return false;
-    }
-
-    return filteredEligibleRows.every((row) => row.examPoints != null);
-  }, [filteredEligibleRows, selectedProgramId, selectedProgramSeats]);
+  }, [eligibleRows, appliedProgramId]);
 
   const hasVisibleFinalRanking = useMemo(
     () =>
@@ -149,15 +113,13 @@ export default function UpisPage(): ReactElement {
     [rankingItems],
   );
 
-  const isFinalRankingGenerationLocked = hasVisibleFinalRanking;
-
   const finalRankingLockedMessage = useMemo(() => {
-    const programLabel = selectedProgramOption
-      ? buildProgramLabel(selectedProgramOption)
+    const programLabel = appliedProgramOption
+      ? buildProgramLabel(appliedProgramOption.nazivPrograma, appliedProgramOption.modul)
       : "izabrani studijski program";
 
-    return `Konacna rang lista za ${programLabel} u skolskoj godini ${skolskaGodina} je vec generisana i ne moze se ponovo generisati.`;
-  }, [selectedProgramOption, skolskaGodina]);
+    return `Konacna rang lista za ${programLabel} u skolskoj godini ${appliedSkolskaGodina || skolskaGodina} je vec generisana i ne moze se ponovo generisati.`;
+  }, [appliedProgramOption, appliedSkolskaGodina, skolskaGodina]);
 
   const loadPrograms = async (): Promise<void> => {
     if (!token) {
@@ -178,28 +140,28 @@ export default function UpisPage(): ReactElement {
     }
   };
 
-  const loadEligibleRows = async (): Promise<void> => {
+  const loadEligibleRows = async (schoolYear: string): Promise<void> => {
     if (!token || !isAdmin) {
       return;
     }
 
     try {
-      const response = await listEligiblePrijaveRequest(token, skolskaGodina);
+      const response = await listEligiblePrijaveRequest(token, schoolYear);
       setEligibleRows(response.data.rows);
     } catch (error) {
       setRequestError(error);
     }
   };
 
-  const loadRankingLists = async (): Promise<void> => {
+  const loadRankingLists = async (programId: string, schoolYear: string): Promise<void> => {
     if (!token) {
       return;
     }
 
     try {
       const response = await listRankingListsRequest(token, {
-        idPrograma: selectedProgramId ? Number(selectedProgramId) : undefined,
-        skolskaGodina: skolskaGodina || undefined,
+        idPrograma: programId ? Number(programId) : undefined,
+        skolskaGodina: schoolYear || undefined,
       });
 
       if (response.data.rows.length > 0) {
@@ -241,19 +203,6 @@ export default function UpisPage(): ReactElement {
     }
   };
 
-  const loadPendingFinalizations = async (): Promise<void> => {
-    if (!token || !isAdmin) {
-      return;
-    }
-
-    try {
-      const response = await listPendingEnrollmentFinalizationsRequest(token, skolskaGodina);
-      setPendingFinalizations(response.data.rows);
-    } catch (error) {
-      setRequestError(error);
-    }
-  };
-
   useEffect(() => {
     void loadPrograms();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -264,9 +213,13 @@ export default function UpisPage(): ReactElement {
       return;
     }
 
-    void loadEligibleRows();
-    void loadRankingLists();
-    void loadPendingFinalizations();
+    setHasPerformedAdminSearch(false);
+    setAppliedProgramId("");
+    setAppliedSkolskaGodina("");
+    setEligibleRows([]);
+    setScoreByPrijava({});
+    setSelectedRankingId("");
+    setRankingItems([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, isAdmin, skolskaGodina, selectedProgramId]);
 
@@ -294,6 +247,45 @@ export default function UpisPage(): ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, selectedRankingId]);
 
+  const onSearchPrijave = async (): Promise<void> => {
+    if (!token || !isAdmin || !selectedProgramId) {
+      return;
+    }
+
+    const programId = selectedProgramId;
+    const schoolYear = skolskaGodina;
+
+    setIsSubmitting(true);
+    clearFeedback();
+    setEligibleRows([]);
+    setScoreByPrijava({});
+    setSelectedRankingId("");
+    setRankingItems([]);
+
+    try {
+      const [eligibleResponse, rankingListsResponse] = await Promise.all([
+        listEligiblePrijaveRequest(token, schoolYear),
+        listRankingListsRequest(token, {
+          idPrograma: Number(programId),
+          skolskaGodina: schoolYear,
+        }),
+      ]);
+
+      setAppliedProgramId(programId);
+      setAppliedSkolskaGodina(schoolYear);
+      setEligibleRows(eligibleResponse.data.rows);
+      setHasPerformedAdminSearch(true);
+
+      if (rankingListsResponse.data.rows.length > 0) {
+        setSelectedRankingId(String(rankingListsResponse.data.rows[0].idRangListe));
+      }
+    } catch (error) {
+      setRequestError(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const onSaveScore = async (row: EligiblePrijavaRow): Promise<void> => {
     if (!token) {
       return;
@@ -302,11 +294,6 @@ export default function UpisPage(): ReactElement {
     const key = `${row.brojPrijave}|${row.skolskaGodina}`;
     const scoreValue = scoreByPrijava[key] ?? "";
     const points = Number(scoreValue);
-
-    if (!Number.isFinite(points) || points < 0 || points > 100) {
-      setErrorMessage("Unesite validan broj poena izmedju 0 i 100.");
-      return;
-    }
 
     setIsSubmitting(true);
     clearFeedback();
@@ -319,7 +306,7 @@ export default function UpisPage(): ReactElement {
       });
 
       setSuccessMessage("Rezultat ispita je sacuvan.");
-      await loadEligibleRows();
+      await loadEligibleRows(appliedSkolskaGodina || skolskaGodina);
     } catch (error) {
       setRequestError(error);
     } finally {
@@ -329,18 +316,6 @@ export default function UpisPage(): ReactElement {
 
   const onGenerateRanking = async (): Promise<void> => {
     if (!token || !selectedProgramId) {
-      return;
-    }
-
-    if (isFinalRankingGenerationLocked) {
-      setErrorMessage(finalRankingLockedMessage);
-      return;
-    }
-
-    if (!canGenerateFinalRanking) {
-      setErrorMessage(
-        "Pre generisanja konacne rang liste morate uneti bodove za sve odobrene prijave izabranog studijskog programa.",
-      );
       return;
     }
 
@@ -354,14 +329,17 @@ export default function UpisPage(): ReactElement {
         brojMesta: selectedProgramSeats ?? 0,
       });
 
+      setAppliedProgramId(selectedProgramId);
+      setAppliedSkolskaGodina(skolskaGodina);
+      setHasPerformedAdminSearch(true);
+
       setSuccessMessage(
         `Konacna rang lista je uspesno generisana. Odobreno: ${response.data.approvedCount}, odbijeno: ${response.data.rejectedCount}. Generisanje je sada zakljucano za ovaj studijski program i skolsku godinu.`,
       );
-      await loadRankingLists();
+      await loadRankingLists(selectedProgramId, skolskaGodina);
       setSelectedRankingId(String(response.data.idRangListe));
       await loadRankingItems(response.data.idRangListe);
-      await loadEligibleRows();
-      await loadPendingFinalizations();
+      await loadEligibleRows(skolskaGodina);
     } catch (error) {
       setRequestError(error);
     } finally {
@@ -405,54 +383,6 @@ export default function UpisPage(): ReactElement {
     }
   };
 
-  const onDownloadPendingContract = async (
-    brojPrijave: number,
-    finalizacijaGodina: string,
-  ): Promise<void> => {
-    if (!token) {
-      return;
-    }
-
-    try {
-      const result = await downloadEnrollmentContractByPrijavaRequest(
-        token,
-        brojPrijave,
-        finalizacijaGodina,
-      );
-      triggerFileDownload(result.blob, result.fileName);
-    } catch (error) {
-      setRequestError(error);
-    }
-  };
-
-  const onConfirmEnrollment = async (
-    brojPrijave: number,
-    finalizacijaGodina: string,
-  ): Promise<void> => {
-    if (!token) {
-      return;
-    }
-
-    setIsSubmitting(true);
-    clearFeedback();
-
-    try {
-      const response = await confirmEnrollmentFinalizationRequest(
-        token,
-        brojPrijave,
-        finalizacijaGodina,
-      );
-      setSuccessMessage(
-        `Upis je finalizovan. Dodeljen broj indeksa: ${response.data.brojIndeksa ?? "-"}.`,
-      );
-      await loadPendingFinalizations();
-    } catch (error) {
-      setRequestError(error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   if (!token) {
     return <main className="p-6">Niste autentifikovani.</main>;
   }
@@ -476,13 +406,27 @@ export default function UpisPage(): ReactElement {
             >
               Modul prijave
             </Link>
+            <Link
+              to="/konacne-rang-liste"
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+            >
+              Konačne rang liste
+            </Link>
             {isAdmin ? (
-              <Link
-                to="/dashboard"
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
-              >
-                Kontrolna tabla
-              </Link>
+              <>
+                <Link
+                  to="/finalizacija-upisa"
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+                >
+                  Finalizacija upisa
+                </Link>
+                <Link
+                  to="/dashboard"
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+                >
+                  Kontrolna tabla
+                </Link>
+              </>
             ) : (
               <button
                 type="button"
@@ -498,7 +442,11 @@ export default function UpisPage(): ReactElement {
         {isAdmin ? (
           <>
             <section className="rounded-2xl border border-slate-300 bg-white p-4">
-              <h2 className="text-lg font-semibold text-slate-900">Parametri upisnog ciklusa</h2>
+              <h2 className="text-lg font-semibold text-slate-900">Pretraga prijava</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Izaberite studijski program i školsku godinu, pa prvo prikažite prijave pre nego što
+                nastavite ka unosu bodova.
+              </p>
               <div className="mt-3 grid gap-3 md:grid-cols-3">
                 <input
                   className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
@@ -513,7 +461,7 @@ export default function UpisPage(): ReactElement {
                 >
                   <option value="">Izaberite program i modul</option>
                   {programs.map((program) => {
-                    const label = buildProgramLabel(program);
+                    const label = buildProgramLabel(program.nazivPrograma, program.modul);
                     return (
                       <option key={program.idPrograma} value={String(program.idPrograma)}>
                         {label}
@@ -531,157 +479,178 @@ export default function UpisPage(): ReactElement {
                 <button
                   type="button"
                   className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-                  onClick={() => void onGenerateRanking()}
-                  disabled={
-                    isSubmitting || !canGenerateFinalRanking || isFinalRankingGenerationLocked
-                  }
+                  onClick={() => void onSearchPrijave()}
+                  disabled={isSubmitting || !selectedProgramId}
                 >
-                  Generisi konacnu rang listu
+                  Prikaži prijave
                 </button>
               </div>
-              {isFinalRankingGenerationLocked ? (
-                <p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                  {finalRankingLockedMessage}
-                </p>
-              ) : (
-                <p className="mt-3 text-sm text-slate-600">
-                  Konacna rang lista se moze generisati tek kada su bodovi uneti za sve odobrene
-                  prijave izabranog studijskog programa.
-                </p>
-              )}
             </section>
 
-            <DataTable
-              title="Odobrene prijave i unos rezultata"
-              rows={filteredEligibleRows}
-              emptyMessage="Nema odobrenih prijava za izabranu skolsku godinu."
-              columns={[
-                { key: "broj", header: "Broj prijave", render: (row) => row.brojPrijave },
-                { key: "ime", header: "Kandidat", render: (row) => row.imePrezime ?? "-" },
-                {
-                  key: "studijskiProgram",
-                  header: "Studijski program",
-                  render: (row) =>
-                    row.studijskiProgram ??
-                    (row.nazivPrograma && row.modul ? `${row.nazivPrograma} | ${row.modul}` : "-"),
-                },
-                { key: "jmbg", header: "JMBG", render: (row) => row.jmbg ?? "-" },
-                {
-                  key: "status",
-                  header: "Status upisa",
-                  render: (row) => row.rankingStatus ?? "Nije ocenjeno",
-                },
-                {
-                  key: "poeni",
-                  header: "Poeni",
-                  render: (row) =>
-                    row.examPoints != null ? (
-                      row.examPoints
-                    ) : (
-                      <input
-                        className="w-24 rounded border border-slate-300 px-2 py-1 text-xs"
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={scoreByPrijava[`${row.brojPrijave}|${row.skolskaGodina}`] ?? ""}
-                        onChange={(event) => {
-                          const key = `${row.brojPrijave}|${row.skolskaGodina}`;
-                          setScoreByPrijava((prev) => ({ ...prev, [key]: event.target.value }));
-                        }}
-                      />
-                    ),
-                },
-                {
-                  key: "akcije",
-                  header: "Akcija",
-                  render: (row) => (
-                    <button
-                      type="button"
-                      className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold disabled:opacity-60"
-                      onClick={() => void onSaveScore(row)}
-                      disabled={isSubmitting || row.examPoints != null}
-                    >
-                      {row.examPoints != null ? "Vec uneto" : "Sacuvaj poene"}
-                    </button>
-                  ),
-                },
-              ]}
-            />
+            {hasPerformedAdminSearch ? (
+              <section className="rounded-2xl border border-slate-300 bg-white">
+                <header className="border-b border-slate-200 p-4">
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    Odobrene prijave i unos rezultata
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Prikaz za{" "}
+                    {appliedProgramOption
+                      ? buildProgramLabel(
+                          appliedProgramOption.nazivPrograma,
+                          appliedProgramOption.modul,
+                        )
+                      : "izabrani studijski program"}
+                    {appliedSkolskaGodina ? ` u školskoj godini ${appliedSkolskaGodina}` : ""}.
+                  </p>
+                </header>
 
-            {hasVisibleFinalRanking ? (
-              <DataTable
-                title={`Konacna rang lista za studijski program ${selectedProgramOption ? buildProgramLabel(selectedProgramOption) : ""} u skolskoj godini ${skolskaGodina}`}
-                rows={rankingItems}
-                emptyMessage="Konacna rang lista jos nije generisana za izabrani studijski program."
-                columns={[
-                  { key: "rang", header: "Rang", render: (row) => row.rangMesto ?? "-" },
-                  {
-                    key: "prijava",
-                    header: "Broj prijave",
-                    render: (row) => row.brojPrijave ?? "-",
-                  },
-                  { key: "ime", header: "Kandidat", render: (row) => row.imePrezime ?? "-" },
-                  {
-                    key: "program",
-                    header: "Studijski program",
-                    render: (row) => row.studijskiProgram ?? "-",
-                  },
-                  { key: "poeni", header: "Poeni", render: (row) => row.brojPoena ?? "-" },
-                  { key: "status", header: "Odluka", render: (row) => row.status ?? "-" },
-                ]}
-              />
-            ) : null}
+                <DataTable
+                  title="Prijave"
+                  rows={filteredEligibleRows}
+                  emptyMessage="Nema odobrenih prijava za izabrani studijski program i školsku godinu."
+                  columns={[
+                    { key: "broj", header: "Broj prijave", render: (row) => row.brojPrijave },
+                    { key: "ime", header: "Kandidat", render: (row) => row.imePrezime ?? "-" },
+                    {
+                      key: "studijskiProgram",
+                      header: "Studijski program",
+                      render: (row) =>
+                        row.studijskiProgram ??
+                        (row.nazivPrograma && row.modul
+                          ? `${row.nazivPrograma} | ${row.modul}`
+                          : "-"),
+                    },
+                    { key: "jmbg", header: "JMBG", render: (row) => row.jmbg ?? "-" },
+                    {
+                      key: "status",
+                      header: "Status upisa",
+                      render: (row) => row.rankingStatus ?? "Nije ocenjeno",
+                    },
+                    {
+                      key: "poeni",
+                      header: "Poeni",
+                      render: (row) =>
+                        row.examPoints != null ? (
+                          row.examPoints
+                        ) : (
+                          <input
+                            className="w-24 rounded border border-slate-300 px-2 py-1 text-xs"
+                            type="number"
+                            value={scoreByPrijava[`${row.brojPrijave}|${row.skolskaGodina}`] ?? ""}
+                            onChange={(event) => {
+                              const key = `${row.brojPrijave}|${row.skolskaGodina}`;
+                              setScoreByPrijava((prev) => ({ ...prev, [key]: event.target.value }));
+                            }}
+                          />
+                        ),
+                    },
+                    {
+                      key: "akcije",
+                      header: "Akcija",
+                      render: (row) => (
+                        <button
+                          type="button"
+                          className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold disabled:opacity-60"
+                          onClick={() => void onSaveScore(row)}
+                          disabled={isSubmitting}
+                        >
+                          Sacuvaj poene
+                        </button>
+                      ),
+                    },
+                  ]}
+                />
 
-            <DataTable
-              title="Kandidati sa otpremljenim ugovorom (cekaju potvrdu)"
-              rows={pendingFinalizations}
-              emptyMessage="Nema kandidata koji cekaju finalnu potvrdu upisa."
-              columns={[
-                { key: "broj", header: "Broj prijave", render: (row) => row.brojPrijave },
-                { key: "godina", header: "Skolska godina", render: (row) => row.skolskaGodina },
-                { key: "ime", header: "Kandidat", render: (row) => row.imePrezime ?? "-" },
-                {
-                  key: "program",
-                  header: "Studijski program",
-                  render: (row) => row.studijskiProgram ?? "-",
-                },
-                {
-                  key: "rezultat",
-                  header: "Poeni / rang",
-                  render: (row) => `${row.brojPoena ?? "-"} / ${row.rangMesto ?? "-"}`,
-                },
-                {
-                  key: "ugovorAt",
-                  header: "Ugovor otpremljen",
-                  render: (row) => formatDateTime(row.signedContractUploadedAt),
-                },
-                {
-                  key: "akcija",
-                  header: "Akcija",
-                  render: (row) => (
-                    <div className="flex flex-wrap gap-2">
+                <div className="border-t border-slate-200 p-4">
+                  {filteredEligibleRows.length > 0 ? (
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-sm text-slate-600">
+                        Kada su svi bodovi uneti, generiše se konačna rang lista za isti studijski
+                        program i školsku godinu.
+                      </p>
                       <button
                         type="button"
-                        className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold"
-                        onClick={() =>
-                          void onDownloadPendingContract(row.brojPrijave, row.skolskaGodina)
-                        }
-                      >
-                        Preuzmi ugovor
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded bg-emerald-700 px-2 py-1 text-xs font-semibold text-white disabled:opacity-60"
-                        onClick={() => void onConfirmEnrollment(row.brojPrijave, row.skolskaGodina)}
+                        className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                        onClick={() => void onGenerateRanking()}
                         disabled={isSubmitting}
                       >
-                        Potvrdi upis
+                        Generiši konačnu rang listu
                       </button>
                     </div>
-                  ),
-                },
-              ]}
-            />
+                  ) : (
+                    <p className="text-sm text-slate-600">
+                      Nema prijava za prikaz, pa generisanje konačne rang liste nije dostupno.
+                    </p>
+                  )}
+                </div>
+              </section>
+            ) : (
+              <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-600">
+                Izaberite studijski program i školsku godinu, pa kliknite na{" "}
+                <span className="font-semibold text-slate-900">Prikaži prijave</span>.
+              </section>
+            )}
+
+            {hasVisibleFinalRanking ? (
+              <section className="rounded-2xl border border-slate-300 bg-white">
+                <header className="border-b border-slate-200 p-4">
+                  <h2 className="text-lg font-semibold text-slate-900">Konačna rang lista</h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {appliedProgramOption
+                      ? buildProgramLabel(
+                          appliedProgramOption.nazivPrograma,
+                          appliedProgramOption.modul,
+                        )
+                      : "Izabrani studijski program"}
+                    {appliedSkolskaGodina ? ` u školskoj godini ${appliedSkolskaGodina}` : ""}.
+                  </p>
+                </header>
+
+                <DataTable
+                  title="Rang stavki"
+                  rows={rankingItems}
+                  emptyMessage="Konačna rang lista još nije generisana za izabrani studijski program."
+                  columns={[
+                    { key: "rang", header: "Rang", render: (row) => row.rangMesto ?? "-" },
+                    {
+                      key: "prijava",
+                      header: "Broj prijave",
+                      render: (row) => row.brojPrijave ?? "-",
+                    },
+                    { key: "ime", header: "Kandidat", render: (row) => row.imePrezime ?? "-" },
+                    {
+                      key: "program",
+                      header: "Studijski program",
+                      render: (row) => row.studijskiProgram ?? "-",
+                    },
+                    { key: "poeni", header: "Poeni", render: (row) => row.brojPoena ?? "-" },
+                    { key: "status", header: "Odluka", render: (row) => row.status ?? "-" },
+                  ]}
+                />
+
+                <div className="border-t border-slate-200 p-4">
+                  <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                    {finalRankingLockedMessage}
+                  </p>
+                  {appliedProgramSeats != null ? (
+                    <p className="mt-2 text-sm text-slate-600">
+                      Predviđen broj mesta za ovu rang listu: {appliedProgramSeats}
+                    </p>
+                  ) : null}
+                  <p className="mt-3 text-sm text-slate-600">
+                    Potvrdu upisa i obradu otpremljenih ugovora nastavite kroz modul Finalizacija
+                    upisa.
+                  </p>
+                  <Link
+                    to="/finalizacija-upisa"
+                    className="mt-2 inline-block rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold"
+                  >
+                    Otvori finalizaciju upisa
+                  </Link>
+                </div>
+              </section>
+            ) : null}
           </>
         ) : (
           <section

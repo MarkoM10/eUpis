@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import type { Prijava } from "../../types/models/prijava";
 import type { PrijavaDocumentsRecord } from "../../types/models/prijavaDocument";
+import { formatDateOnly } from "../../utils/utils";
 
 interface StudentPrijavaSummaryCardProps {
   prijava: Prijava;
@@ -8,14 +9,6 @@ interface StudentPrijavaSummaryCardProps {
   isDocumentsLoading: boolean;
   onRefresh: () => void;
 }
-
-const formatDate = (value: string | null): string => {
-  if (!value) {
-    return "-";
-  }
-
-  return value.slice(0, 10);
-};
 
 const statusClassName = (status: string | null): string => {
   const normalized = (status ?? "").toLowerCase();
@@ -69,7 +62,9 @@ export default function StudentPrijavaSummaryCard({
         </article>
         <article className="rounded-xl border border-emerald-200 bg-white px-4 py-3">
           <p className="text-xs uppercase tracking-wide text-slate-500">Datum prijave</p>
-          <p className="text-lg font-semibold text-slate-900">{formatDate(prijava.datumPrijave)}</p>
+          <p className="text-lg font-semibold text-slate-900">
+            {formatDateOnly(prijava.datumPrijave)}
+          </p>
         </article>
         <article className="rounded-xl border border-emerald-200 bg-white px-4 py-3">
           <p className="text-xs uppercase tracking-wide text-slate-500">Konkursni rok</p>

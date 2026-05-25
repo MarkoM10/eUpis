@@ -137,6 +137,38 @@ export const listRankingItemsRequest = async (
   return response.data;
 };
 
+export const updateRankingListStudyProgramRequest = async (
+  token: string,
+  idRangListe: number,
+  payload: { studijskiProgram: string },
+): Promise<ApiSuccess<{ updated: boolean }>> => {
+  const response = await axios.put<ApiSuccess<{ updated: boolean }>>(
+    buildApiUrl(`/upis/rang-liste/${idRangListe}/studijski-program`),
+    payload,
+    {
+      headers: authHeaders(token),
+    },
+  );
+
+  return response.data;
+};
+
+export const updateRankingItemStudyProgramRequest = async (
+  token: string,
+  idStavke: number,
+  payload: { studijskiProgram: string },
+): Promise<ApiSuccess<{ updated: boolean }>> => {
+  const response = await axios.put<ApiSuccess<{ updated: boolean }>>(
+    buildApiUrl(`/upis/rang-liste/stavke/${idStavke}/studijski-program`),
+    payload,
+    {
+      headers: authHeaders(token),
+    },
+  );
+
+  return response.data;
+};
+
 export const getStudentAdmissionStatusRequest = async (
   token: string,
 ): Promise<ApiSuccess<StudentAdmissionStatus>> => {

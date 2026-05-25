@@ -55,6 +55,14 @@ export interface GenerateRankingInput {
   brojMesta: number;
 }
 
+export interface RankingListStudyProgramUpdateInput {
+  studijskiProgram: string;
+}
+
+export interface RankingItemStudyProgramUpdateInput {
+  studijskiProgram: string;
+}
+
 export interface StudentAdmissionStatus {
   stage:
     | "NemaPrijave"

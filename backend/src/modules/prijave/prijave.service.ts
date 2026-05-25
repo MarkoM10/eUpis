@@ -17,24 +17,11 @@ import type {
   PrijavaKey,
   PrijavaMutationInput,
   PrijavaRecord,
+  StudentKandidatSetupInput,
   PrijavaStatusUpdateInput,
 } from "../../types/modules/prijave";
 import type { UserRole } from "../../types/modules/auth";
-
-const normalizeSchoolYear = (value: string): string => {
-  const trimmed = value.trim();
-  const match = trimmed.match(/^(\d{4})/);
-
-  if (!match) {
-    throw new ApiError(
-      400,
-      "Neispravna skolska godina",
-      "Skolska godina mora biti u formatu YYYY, na primer 2026.",
-    );
-  }
-
-  return match[1];
-};
+import { normalizeSchoolYear } from "../../utils/utils";
 
 export const listPrijaveService = async (
   query: Record<string, unknown>,
@@ -46,7 +33,7 @@ export const getPrijavaService = async (key: PrijavaKey): Promise<PrijavaRecord>
   return getPrijavaByKey(key);
 };
 
-const ensureRequiredStudentFields = (payload: PrijavaMutationInput): void => {
+const ensureRequiredKandidatSetupFields = (payload: StudentKandidatSetupInput): void => {
   const missingFields: string[] = [];
 
   if (!payload.jmbg) {
@@ -54,9 +41,6 @@ const ensureRequiredStudentFields = (payload: PrijavaMutationInput): void => {
   }
   if (!payload.imePrezime) {
     missingFields.push("imePrezime");
-  }
-  if (!payload.idPrograma) {
-    missingFields.push("idPrograma");
   }
   if (!payload.kandidat?.emailVrednost) {
     missingFields.push("kandidat.emailVrednost");
@@ -75,13 +59,15 @@ const ensureRequiredStudentFields = (payload: PrijavaMutationInput): void => {
     throw new ApiError(
       400,
       "Nedostaju podaci kandidata",
-      `Za studentsku prijavu obavezna su polja: ${missingFields.join(", ")}.`,
+      `Za kreiranje kandidata obavezna su polja: ${missingFields.join(", ")}.`,
     );
   }
 };
 
-const ensureStudentKandidatFromPrijava = async (payload: PrijavaMutationInput): Promise<void> => {
-  ensureRequiredStudentFields(payload);
+export const upsertStudentKandidatService = async (
+  payload: StudentKandidatSetupInput,
+): Promise<void> => {
+  ensureRequiredKandidatSetupFields(payload);
 
   const jmbg = payload.jmbg as string;
   const imePrezime = payload.imePrezime as string;
@@ -165,7 +151,7 @@ export const createPrijavaService = async (
       throw new ApiError(401, "Autentikacija", "Korisnik nije autentifikovan.");
     }
 
-    await ensureStudentKandidatFromPrijava(payloadWithOwner);
+    await ensureKandidatExists(payloadWithOwner.jmbg ?? null);
   } else {
     await ensureKandidatExists(payloadWithOwner.jmbg ?? null);
   }

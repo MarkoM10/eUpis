@@ -2,7 +2,12 @@ import multer from "multer";
 import { type NextFunction, type Request, type Response } from "express";
 import { ApiError } from "../../shared/apiError";
 import { ok } from "../../shared/httpResponse";
-import type { GenerateRankingInput, SaveExamScoreInput } from "../../types/modules/upis";
+import type {
+  GenerateRankingInput,
+  RankingItemStudyProgramUpdateInput,
+  RankingListStudyProgramUpdateInput,
+  SaveExamScoreInput,
+} from "../../types/modules/upis";
 import {
   confirmEnrollmentFinalizationService,
   downloadEnrollmentContractByPrijavaService,
@@ -16,6 +21,8 @@ import {
   listRankingListsService,
   listStudyProgramsService,
   saveExamScoreService,
+  updateRankingItemStudyProgramService,
+  updateRankingListStudyProgramService,
   uploadSignedEnrollmentContractService,
 } from "./upis.service";
 
@@ -118,6 +125,42 @@ export const listRankingItemsHandler = async (
     const idRangListe = Number(req.params.idRangListe);
     const rows = await listRankingItemsService(idRangListe);
     res.json(ok("Stavke rang liste su uspesno ucitane.", { rows }));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateRankingListStudyProgramHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const idRangListe = Number(req.params.idRangListe);
+    await updateRankingListStudyProgramService({
+      idRangListe,
+      ...(req.body as RankingListStudyProgramUpdateInput),
+    });
+    res.json(
+      ok("Studijski program na konacnoj rang listi je uspesno azuriran.", { updated: true }),
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateRankingItemStudyProgramHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const idStavke = Number(req.params.idStavke);
+    await updateRankingItemStudyProgramService({
+      idStavke,
+      ...(req.body as RankingItemStudyProgramUpdateInput),
+    });
+    res.json(ok("Studijski program stavke je uspesno azuriran.", { updated: true }));
   } catch (error) {
     next(error);
   }

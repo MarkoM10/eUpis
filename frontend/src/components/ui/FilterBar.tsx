@@ -14,6 +14,10 @@ interface FilterBarProps {
   statusValue?: string;
   onStatusChange?: (value: string) => void;
   statusOptions?: FilterBarOption[];
+  extraFilterLabel?: string;
+  extraFilterValue?: string;
+  onExtraFilterChange?: (value: string) => void;
+  extraFilterOptions?: FilterBarOption[];
   onApply?: () => void;
 }
 
@@ -26,6 +30,10 @@ export function FilterBar({
   statusValue,
   onStatusChange,
   statusOptions,
+  extraFilterLabel,
+  extraFilterValue,
+  onExtraFilterChange,
+  extraFilterOptions,
   onApply,
 }: FilterBarProps): ReactElement {
   return (
@@ -75,9 +83,24 @@ export function FilterBar({
             ))}
           </select>
         </label>
-      ) : (
-        <div className="hidden xl:block" />
-      )}
+      ) : null}
+
+      {extraFilterOptions && onExtraFilterChange ? (
+        <label className="text-sm font-medium text-slate-700">
+          {extraFilterLabel || "Dodatni filter"}
+          <select
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            value={extraFilterValue}
+            onChange={(event) => onExtraFilterChange(event.target.value)}
+          >
+            {extraFilterOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
       <div className="flex items-end">
         <button

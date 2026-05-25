@@ -32,6 +32,12 @@ export interface PrijavaMutationInput {
   kandidat?: KandidatFromPrijavaInput | null;
 }
 
+export interface StudentKandidatSetupInput {
+  jmbg: string | null;
+  imePrezime: string | null;
+  kandidat: KandidatFromPrijavaInput | null;
+}
+
 export interface PrijavaStatusUpdateInput {
   statusPrijave: string | null;
   sistemskiUpdate?: string | null;

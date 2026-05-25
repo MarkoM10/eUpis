@@ -12,6 +12,7 @@ import {
   deletePrijavaHandler,
   getPrijavaHandler,
   listPrijaveHandler,
+  upsertStudentKandidatHandler,
   updatePrijavaStatusHandler,
   updatePrijavaHandler,
 } from "./prijave.controller";
@@ -38,6 +39,7 @@ prijaveRouter.post(
   uploadPrijavaDocumentHandler,
 );
 prijaveRouter.get("/:brojPrijave/:skolskaGodina", requireRole("admin"), getPrijavaHandler);
+prijaveRouter.post("/student/kandidat", requireRole("student"), upsertStudentKandidatHandler);
 prijaveRouter.post("/", requireRole("admin", "student"), createPrijavaHandler);
 prijaveRouter.put("/:brojPrijave/:skolskaGodina", requireRole("admin"), updatePrijavaHandler);
 prijaveRouter.put(

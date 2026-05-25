@@ -1,6 +1,5 @@
 import { executeSql } from "../../db/oracle/execute";
 import { ApiError } from "../../shared/apiError";
-import { buildListSql, parseListQuery } from "../../shared/query";
 import type { KandidatMutationInput, KandidatRecord } from "../../types/modules/kandidati";
 
 type KandidatRow = {
@@ -27,19 +26,6 @@ const mapRow = (row: KandidatRow): KandidatRecord => {
   };
 };
 
-const baseSelect = `
-  SELECT
-    k.jmbg,
-    k.ime_prezime,
-    k.tip_kandidata,
-    k.serijski_broj,
-    k.email.get_vrednost() AS email_vrednost,
-    k.adresa_obj.get_ulica() AS adresa_ulica,
-    k.adresa_obj.get_broj() AS adresa_broj,
-    k.adresa_obj.get_grad() AS adresa_grad
-  FROM Kandidat k
-`;
-
 export const listKandidati = async (
   query: Record<string, unknown>,
 ): Promise<{
@@ -47,28 +33,76 @@ export const listKandidati = async (
   page: number;
   pageSize: number;
 }> => {
-  const parsed = parseListQuery(query, {
-    allowedSortColumns: ["jmbg", "ime_prezime", "tip_kandidata", "serijski_broj"],
-    allowedFilters: ["tip_kandidata"],
-  });
+  const pageRaw = typeof query.page === "string" ? Number(query.page) : 1;
+  const page = Number.isInteger(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+  const pageSizeRaw = typeof query.pageSize === "string" ? Number(query.pageSize) : 20;
+  const pageSize =
+    Number.isInteger(pageSizeRaw) && pageSizeRaw > 0 ? Math.min(pageSizeRaw, 100) : 20;
+  const offset = (page - 1) * pageSize;
 
-  const sqlParts = buildListSql(parsed, {
-    searchableColumn: "k.ime_prezime",
-    filterColumnMap: {
-      tip_kandidata: "k.tip_kandidata",
-    },
-    defaultSortBy: "ime_prezime",
-  });
+  const search =
+    typeof query.search === "string" && query.search.trim() ? `%${query.search.trim()}%` : null;
+  const tipKandidata =
+    typeof query.tip_kandidata === "string" && query.tip_kandidata.trim()
+      ? query.tip_kandidata.trim()
+      : null;
+
+  const sortByInput = typeof query.sortBy === "string" ? query.sortBy.trim() : "";
+  const sortDirectionInput =
+    typeof query.sortDirection === "string" ? query.sortDirection.trim().toLowerCase() : "asc";
+
+  const allowedSortColumns = ["jmbg", "ime_prezime", "tip_kandidata", "serijski_broj"];
+  if (sortByInput && !allowedSortColumns.includes(sortByInput)) {
+    throw new ApiError(
+      400,
+      "Neispravan parametar",
+      `sortBy nije dozvoljen. Dozvoljene vrednosti: ${allowedSortColumns.join(", ")}.`,
+    );
+  }
+
+  const sortBy = sortByInput || "ime_prezime";
+  const sortDirection = sortDirectionInput === "desc" ? "desc" : "asc";
 
   const result = await executeSql<KandidatRow>(
-    `${baseSelect} ${sqlParts.sqlSuffix}`,
-    sqlParts.binds,
+    `
+      SELECT
+        k.jmbg,
+        k.ime_prezime,
+        k.tip_kandidata,
+        k.serijski_broj,
+        k.email.get_vrednost() AS email_vrednost,
+        k.adresa_obj.get_ulica() AS adresa_ulica,
+        k.adresa_obj.get_broj() AS adresa_broj,
+        k.adresa_obj.get_grad() AS adresa_grad
+      FROM Kandidat k
+      WHERE (:search IS NULL OR LOWER(k.ime_prezime) LIKE LOWER(:search))
+        AND (:tipKandidata IS NULL OR k.tip_kandidata = :tipKandidata)
+      ORDER BY
+        CASE WHEN :sortBy = 'jmbg' AND :sortDirection = 'asc' THEN k.jmbg END ASC,
+        CASE WHEN :sortBy = 'jmbg' AND :sortDirection = 'desc' THEN k.jmbg END DESC,
+        CASE WHEN :sortBy = 'ime_prezime' AND :sortDirection = 'asc' THEN k.ime_prezime END ASC,
+        CASE WHEN :sortBy = 'ime_prezime' AND :sortDirection = 'desc' THEN k.ime_prezime END DESC,
+        CASE WHEN :sortBy = 'tip_kandidata' AND :sortDirection = 'asc' THEN k.tip_kandidata END ASC,
+        CASE WHEN :sortBy = 'tip_kandidata' AND :sortDirection = 'desc' THEN k.tip_kandidata END DESC,
+        CASE WHEN :sortBy = 'serijski_broj' AND :sortDirection = 'asc' THEN k.serijski_broj END ASC,
+        CASE WHEN :sortBy = 'serijski_broj' AND :sortDirection = 'desc' THEN k.serijski_broj END DESC,
+        k.ime_prezime ASC
+      OFFSET :offset ROWS FETCH NEXT :pageSize ROWS ONLY
+    `,
+    {
+      search,
+      tipKandidata,
+      sortBy,
+      sortDirection,
+      offset,
+      pageSize,
+    },
   );
 
   return {
     rows: (result.rows ?? []).map(mapRow),
-    page: parsed.pagination.page,
-    pageSize: parsed.pagination.pageSize,
+    page,
+    pageSize,
   };
 };
 
@@ -83,7 +117,22 @@ export const getKandidatByJmbg = async (jmbg: string): Promise<KandidatRecord> =
 };
 
 export const findKandidatByJmbg = async (jmbg: string): Promise<KandidatRecord | null> => {
-  const result = await executeSql<KandidatRow>(`${baseSelect} WHERE k.jmbg = :jmbg`, { jmbg });
+  const result = await executeSql<KandidatRow>(
+    `
+      SELECT
+        k.jmbg,
+        k.ime_prezime,
+        k.tip_kandidata,
+        k.serijski_broj,
+        k.email.get_vrednost() AS email_vrednost,
+        k.adresa_obj.get_ulica() AS adresa_ulica,
+        k.adresa_obj.get_broj() AS adresa_broj,
+        k.adresa_obj.get_grad() AS adresa_grad
+      FROM Kandidat k
+      WHERE k.jmbg = :jmbg
+    `,
+    { jmbg },
+  );
 
   const row = result.rows?.[0];
   return row ? mapRow(row) : null;

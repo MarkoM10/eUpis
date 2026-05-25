@@ -163,17 +163,6 @@ const mapPendingEnrollmentFinalization = (
   signedContractUploadedAt: row.UGOVOR_UPLOADED_AT ? row.UGOVOR_UPLOADED_AT.toISOString() : null,
 });
 
-const getNextValue = async (
-  tableName: "STAVKARANGLISTE" | "KONACNARANGLISTA" | "UPIS_FINALIZACIJA",
-  columnName: string,
-): Promise<number> => {
-  const result = await executeSql<{ NEXT_VAL: number }>(
-    `SELECT NVL(MAX(t.${columnName}), 0) + 1 AS next_val FROM ${tableName} t`,
-  );
-
-  return result.rows?.[0]?.NEXT_VAL ?? 1;
-};
-
 export const listStudyPrograms = async (): Promise<StudyProgramOption[]> => {
   const result = await executeSql<ProgramRow>(
     `
@@ -297,7 +286,10 @@ export const createRankingList = async (
   skolskaGodina: string,
   brojMesta: number,
 ): Promise<number> => {
-  const idRangListe = await getNextValue("KONACNARANGLISTA", "id_rang_liste");
+  const nextIdResult = await executeSql<{ NEXT_VAL: number }>(
+    "SELECT NVL(MAX(kr.id_rang_liste), 0) + 1 AS next_val FROM KonacnaRangLista kr",
+  );
+  const idRangListe = nextIdResult.rows?.[0]?.NEXT_VAL ?? 1;
 
   await executeSql(
     `
@@ -442,9 +434,11 @@ export const insertExamScore = async (input: {
   idPrograma: number;
   imePrezime: string | null;
   brojPoena: number;
-  studijskiProgram: string;
 }): Promise<number> => {
-  const idStavke = await getNextValue("STAVKARANGLISTE", "id_stavke");
+  const nextIdResult = await executeSql<{ NEXT_VAL: number }>(
+    "SELECT NVL(MAX(s.id_stavke), 0) + 1 AS next_val FROM StavkaRangListe s",
+  );
+  const idStavke = nextIdResult.rows?.[0]?.NEXT_VAL ?? 1;
 
   await executeSql(
     `
@@ -457,7 +451,6 @@ export const insertExamScore = async (input: {
         id_programa,
         rang_mesto,
         status,
-        studijski_program,
         sistemski_update
       )
       VALUES (
@@ -469,7 +462,6 @@ export const insertExamScore = async (input: {
         :idPrograma,
         NULL,
         'BodoviUneti',
-        :studijskiProgram,
         'N'
       )
     `,
@@ -480,7 +472,6 @@ export const insertExamScore = async (input: {
       imePrezime: input.imePrezime,
       brojPrijave: input.brojPrijave,
       idPrograma: input.idPrograma,
-      studijskiProgram: input.studijskiProgram,
     },
   );
 
@@ -549,6 +540,40 @@ export const updateRankingListSeats = async (
   );
 };
 
+export const updateRankingListStudyProgram = async (
+  idRangListe: number,
+  studijskiProgram: string,
+): Promise<void> => {
+  await executeSql(
+    `
+      UPDATE KonacnaRangLista
+      SET studijski_program = :studijskiProgram
+      WHERE id_rang_liste = :idRangListe
+    `,
+    {
+      idRangListe,
+      studijskiProgram,
+    },
+  );
+};
+
+export const updateRankingItemStudyProgram = async (
+  idStavke: number,
+  studijskiProgram: string,
+): Promise<void> => {
+  await executeSql(
+    `
+      UPDATE StavkaRangListe
+      SET studijski_program = :studijskiProgram
+      WHERE id_stavke = :idStavke
+    `,
+    {
+      idStavke,
+      studijskiProgram,
+    },
+  );
+};
+
 export const getEnrollmentFinalizationByPrijava = async (
   brojPrijave: number,
   skolskaGodina: string,
@@ -612,7 +637,10 @@ export const upsertSignedEnrollmentContract = async (input: {
       },
     );
   } else {
-    const idUpisa = await getNextValue("UPIS_FINALIZACIJA", "id_upisa");
+    const nextIdResult = await executeSql<{ NEXT_VAL: number }>(
+      "SELECT NVL(MAX(uf.id_upisa), 0) + 1 AS next_val FROM Upis_Finalizacija uf",
+    );
+    const idUpisa = nextIdResult.rows?.[0]?.NEXT_VAL ?? 1;
 
     await executeSql(
       `

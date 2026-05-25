@@ -47,40 +47,6 @@ type DownloadRow = {
   DOCUMENT_FILE_CONTENT: Buffer | null;
 };
 
-const diplomaBaseSelect = `
-  SELECT
-    d.serijski_broj,
-    d.datum_izdavanja,
-    d.broj_espb,
-    d.steceno_zvanje,
-    d.datum_diplomiranja,
-    d.godina_upisa,
-    d.prosecna_ocena,
-    d.id_fakulteta,
-    d.id AS rektor_id,
-    d.document_file_name,
-    d.document_mime_type,
-    d.document_file_size,
-    d.document_uploaded_at,
-    CASE WHEN d.document_file_content IS NOT NULL THEN 1 ELSE 0 END AS has_file
-  FROM Diploma d
-`;
-
-const uverenjeBaseSelect = `
-  SELECT
-    u.serijski_broj,
-    u.datum_izdavanja,
-    u.id_fakulteta,
-    u.ukupno_espb,
-    u.prosecna_ocena,
-    u.document_file_name,
-    u.document_mime_type,
-    u.document_file_size,
-    u.document_uploaded_at,
-    CASE WHEN u.document_file_content IS NOT NULL THEN 1 ELSE 0 END AS has_file
-  FROM UverenjeOPolozenimPredmetima u
-`;
-
 const toIso = (value: Date | null): string | null => (value ? value.toISOString() : null);
 
 const emptySummary = (documentType: PrijavaDocumentType): PrijavaDocumentSummary => ({
@@ -154,51 +120,51 @@ const mapUverenjeRow = (row: UverenjeRow | undefined): PrijavaDocumentSummary =>
   };
 };
 
-const getNextSerialNumber = async (
-  tableName: "Diploma" | "UverenjeOPolozenimPredmetima",
-): Promise<number> => {
-  const result = await executeSql<{ NEXT_SERIAL: number }>(
-    `SELECT NVL(MAX(serijski_broj), 0) + 1 AS next_serial FROM ${tableName}`,
-  );
-
-  return result.rows?.[0]?.NEXT_SERIAL ?? 1;
-};
-
-const getExistingSerialNumber = async (
-  tableName: "Diploma" | "UverenjeOPolozenimPredmetima",
-  key: PrijavaKey,
-): Promise<number | null> => {
-  const result = await executeSql<{ SERIJSKI_BROJ: number }>(
-    `
-      SELECT serijski_broj
-      FROM ${tableName}
-      WHERE broj_prijave = :brojPrijave
-        AND skolska_godina = :skolskaGodina
-    `,
-    {
-      brojPrijave: key.brojPrijave,
-      skolskaGodina: key.skolskaGodina,
-    },
-  );
-
-  return result.rows?.[0]?.SERIJSKI_BROJ ?? null;
-};
-
 export const getPrijavaDocuments = async (key: PrijavaKey): Promise<PrijavaDocumentsRecord> => {
   const [diplomaResult, uverenjeResult] = await Promise.all([
     executeSql<DiplomaRow>(
-      `${diplomaBaseSelect}
-       WHERE d.broj_prijave = :brojPrijave
-         AND d.skolska_godina = :skolskaGodina`,
+      `
+        SELECT
+          d.serijski_broj,
+          d.datum_izdavanja,
+          d.broj_espb,
+          d.steceno_zvanje,
+          d.datum_diplomiranja,
+          d.godina_upisa,
+          d.prosecna_ocena,
+          d.id_fakulteta,
+          d.id AS rektor_id,
+          d.document_file_name,
+          d.document_mime_type,
+          d.document_file_size,
+          d.document_uploaded_at,
+          CASE WHEN d.document_file_content IS NOT NULL THEN 1 ELSE 0 END AS has_file
+        FROM Diploma d
+        WHERE d.broj_prijave = :brojPrijave
+          AND d.skolska_godina = :skolskaGodina
+      `,
       {
         brojPrijave: key.brojPrijave,
         skolskaGodina: key.skolskaGodina,
       },
     ),
     executeSql<UverenjeRow>(
-      `${uverenjeBaseSelect}
-       WHERE u.broj_prijave = :brojPrijave
-         AND u.skolska_godina = :skolskaGodina`,
+      `
+        SELECT
+          u.serijski_broj,
+          u.datum_izdavanja,
+          u.id_fakulteta,
+          u.ukupno_espb,
+          u.prosecna_ocena,
+          u.document_file_name,
+          u.document_mime_type,
+          u.document_file_size,
+          u.document_uploaded_at,
+          CASE WHEN u.document_file_content IS NOT NULL THEN 1 ELSE 0 END AS has_file
+        FROM UverenjeOPolozenimPredmetima u
+        WHERE u.broj_prijave = :brojPrijave
+          AND u.skolska_godina = :skolskaGodina
+      `,
       {
         brojPrijave: key.brojPrijave,
         skolskaGodina: key.skolskaGodina,
@@ -217,8 +183,28 @@ export const upsertPrijavaDocument = async (
   input: PrijavaDocumentUploadInput,
 ): Promise<PrijavaDocumentSummary> => {
   if (input.type === "diploma") {
-    const existingSerialNumber = await getExistingSerialNumber("Diploma", key);
-    const serialNumber = existingSerialNumber ?? (await getNextSerialNumber("Diploma"));
+    const existingSerialResult = await executeSql<{ SERIJSKI_BROJ: number }>(
+      `
+        SELECT d.serijski_broj
+        FROM Diploma d
+        WHERE d.broj_prijave = :brojPrijave
+          AND d.skolska_godina = :skolskaGodina
+      `,
+      {
+        brojPrijave: key.brojPrijave,
+        skolskaGodina: key.skolskaGodina,
+      },
+    );
+
+    const existingSerialNumber = existingSerialResult.rows?.[0]?.SERIJSKI_BROJ ?? null;
+
+    let serialNumber = existingSerialNumber;
+    if (!serialNumber) {
+      const nextSerialResult = await executeSql<{ NEXT_SERIAL: number }>(
+        "SELECT NVL(MAX(d.serijski_broj), 0) + 1 AS next_serial FROM Diploma d",
+      );
+      serialNumber = nextSerialResult.rows?.[0]?.NEXT_SERIAL ?? 1;
+    }
 
     if (existingSerialNumber) {
       await executeSql(
@@ -318,9 +304,28 @@ export const upsertPrijavaDocument = async (
       );
     }
   } else {
-    const existingSerialNumber = await getExistingSerialNumber("UverenjeOPolozenimPredmetima", key);
-    const serialNumber =
-      existingSerialNumber ?? (await getNextSerialNumber("UverenjeOPolozenimPredmetima"));
+    const existingSerialResult = await executeSql<{ SERIJSKI_BROJ: number }>(
+      `
+        SELECT u.serijski_broj
+        FROM UverenjeOPolozenimPredmetima u
+        WHERE u.broj_prijave = :brojPrijave
+          AND u.skolska_godina = :skolskaGodina
+      `,
+      {
+        brojPrijave: key.brojPrijave,
+        skolskaGodina: key.skolskaGodina,
+      },
+    );
+
+    const existingSerialNumber = existingSerialResult.rows?.[0]?.SERIJSKI_BROJ ?? null;
+
+    let serialNumber = existingSerialNumber;
+    if (!serialNumber) {
+      const nextSerialResult = await executeSql<{ NEXT_SERIAL: number }>(
+        "SELECT NVL(MAX(u.serijski_broj), 0) + 1 AS next_serial FROM UverenjeOPolozenimPredmetima u",
+      );
+      serialNumber = nextSerialResult.rows?.[0]?.NEXT_SERIAL ?? 1;
+    }
 
     if (existingSerialNumber) {
       await executeSql(
@@ -409,29 +414,50 @@ export const getPrijavaDocumentDownload = async (
   key: PrijavaKey,
   documentType: PrijavaDocumentType,
 ): Promise<PrijavaDocumentDownloadRecord> => {
-  const tableName = documentType === "diploma" ? "Diploma" : "UverenjeOPolozenimPredmetima";
-
-  const result = await executeSql<DownloadRow>(
-    `
-      SELECT
-        document_file_name,
-        document_mime_type,
-        document_file_size,
-        document_file_content
-      FROM ${tableName}
-      WHERE broj_prijave = :brojPrijave
-        AND skolska_godina = :skolskaGodina
-    `,
-    {
-      brojPrijave: key.brojPrijave,
-      skolskaGodina: key.skolskaGodina,
-    },
-    {
-      fetchInfo: {
-        DOCUMENT_FILE_CONTENT: { type: oracledb.BUFFER },
-      },
-    },
-  );
+  const result =
+    documentType === "diploma"
+      ? await executeSql<DownloadRow>(
+          `
+            SELECT
+              d.document_file_name,
+              d.document_mime_type,
+              d.document_file_size,
+              d.document_file_content
+            FROM Diploma d
+            WHERE d.broj_prijave = :brojPrijave
+              AND d.skolska_godina = :skolskaGodina
+          `,
+          {
+            brojPrijave: key.brojPrijave,
+            skolskaGodina: key.skolskaGodina,
+          },
+          {
+            fetchInfo: {
+              DOCUMENT_FILE_CONTENT: { type: oracledb.BUFFER },
+            },
+          },
+        )
+      : await executeSql<DownloadRow>(
+          `
+            SELECT
+              u.document_file_name,
+              u.document_mime_type,
+              u.document_file_size,
+              u.document_file_content
+            FROM UverenjeOPolozenimPredmetima u
+            WHERE u.broj_prijave = :brojPrijave
+              AND u.skolska_godina = :skolskaGodina
+          `,
+          {
+            brojPrijave: key.brojPrijave,
+            skolskaGodina: key.skolskaGodina,
+          },
+          {
+            fetchInfo: {
+              DOCUMENT_FILE_CONTENT: { type: oracledb.BUFFER },
+            },
+          },
+        );
 
   const row = result.rows?.[0];
   if (!row || !row.DOCUMENT_FILE_CONTENT || !row.DOCUMENT_FILE_NAME) {

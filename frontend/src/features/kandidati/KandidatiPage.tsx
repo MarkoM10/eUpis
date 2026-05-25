@@ -121,20 +121,13 @@ export default function KandidatiPage(): ReactElement {
       return;
     }
 
-    if (!editingJmbg) {
-      setLocalErrorMessage(
-        "Izaberite kandidata za izmenu iz tabele. Dodavanje novih kandidata je dostupno kroz studentsku prijavu.",
-      );
-      return;
-    }
-
     setIsSubmitting(true);
     clearLocalFeedback();
     dispatch(clearKandidatiError());
 
     try {
       const payload = toPayload(form);
-      await updateKandidatRequest(token, editingJmbg, payload);
+      await updateKandidatRequest(token, editingJmbg ?? form.jmbg, payload);
       setSuccessMessage("Kandidat je uspesno azuriran.");
 
       setForm(emptyForm);
@@ -178,7 +171,6 @@ export default function KandidatiPage(): ReactElement {
               placeholder="JMBG"
               value={form.jmbg}
               onChange={(event) => onFormChange("jmbg", event.target.value)}
-              disabled={Boolean(editingJmbg)}
             />
             <input
               className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
@@ -265,8 +257,8 @@ export default function KandidatiPage(): ReactElement {
           onStatusChange={(value) => dispatch(setTipKandidataFilter(value))}
           statusOptions={[
             { value: "svi", label: "Tip kandidata: svi" },
-            { value: "student", label: "student" },
-            { value: "zaposlen", label: "zaposlen" },
+            { value: "MASTER", label: "Master" },
+            { value: "DOKTOR", label: "Doktor" },
           ]}
           onApply={() => {
             void dispatch(loadKandidati());

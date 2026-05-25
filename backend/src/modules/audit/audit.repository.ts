@@ -26,19 +26,22 @@ export const listAuditLogs = async (limit = 200): Promise<AuditLogRecord[]> => {
     ? Math.min(Math.max(Math.trunc(limit), 1), 500)
     : 200;
 
-  const result = await executeSql<AuditLogRow>(`
-    SELECT
-      a.id_audit,
-      TO_CHAR(a.event_time, 'YYYY-MM-DD"T"HH24:MI:SS') AS event_time,
-      a.table_name,
-      a.operation,
-      a.entity_key,
-      DBMS_LOB.SUBSTR(a.details, 4000, 1) AS details,
-      a.db_user
-    FROM Audit_Log a
-    ORDER BY a.event_time DESC, a.id_audit DESC
-    FETCH FIRST ${resolvedLimit} ROWS ONLY
-  `);
+  const result = await executeSql<AuditLogRow>(
+    `
+      SELECT
+        a.id_audit,
+        TO_CHAR(a.event_time, 'YYYY-MM-DD"T"HH24:MI:SS') AS event_time,
+        a.table_name,
+        a.operation,
+        a.entity_key,
+        DBMS_LOB.SUBSTR(a.details, 4000, 1) AS details,
+        a.db_user
+      FROM Audit_Log a
+      ORDER BY a.event_time DESC, a.id_audit DESC
+      FETCH FIRST :limit ROWS ONLY
+    `,
+    { limit: resolvedLimit },
+  );
 
   return (result.rows ?? []).map(mapAuditLogRow);
 };

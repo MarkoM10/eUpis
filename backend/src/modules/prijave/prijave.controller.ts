@@ -4,12 +4,14 @@ import type {
   PrijavaKey,
   PrijavaMutationInput,
   PrijavaStatusUpdateInput,
+  StudentKandidatSetupInput,
 } from "../../types/modules/prijave";
 import {
   createPrijavaService,
   deletePrijavaService,
   getPrijavaService,
   listPrijaveService,
+  upsertStudentKandidatService,
   updatePrijavaService,
   updatePrijavaStatusService,
 } from "./prijave.service";
@@ -72,12 +74,29 @@ export const createPrijavaHandler = async (
   }
 };
 
+export const upsertStudentKandidatHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    await upsertStudentKandidatService(req.body as StudentKandidatSetupInput);
+    res.json(ok("Podaci kandidata su uspesno sacuvani.", { upserted: true }));
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const updatePrijavaHandler = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
   try {
+    console.log("[Prijave] PUT /api/prijave/:brojPrijave/:skolskaGodina", {
+      key: getKey(req),
+      bodyKeys: Object.keys((req.body as Record<string, unknown>) ?? {}),
+    });
     await updatePrijavaService(getKey(req), req.body as PrijavaMutationInput);
     res.json(ok("Prijava je uspesno azurirana.", { updated: true }));
   } catch (error) {
@@ -91,6 +110,10 @@ export const updatePrijavaStatusHandler = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
+    console.log("[Prijave] PUT /api/prijave/:brojPrijave/:skolskaGodina/status", {
+      key: getKey(req),
+      bodyKeys: Object.keys((req.body as Record<string, unknown>) ?? {}),
+    });
     await updatePrijavaStatusService(getKey(req), req.body as PrijavaStatusUpdateInput);
     res.json(ok("Status prijave je uspesno azuriran.", { updated: true }));
   } catch (error) {

@@ -9,36 +9,7 @@ import { listAuditLogsRequest } from "../../services/auditService";
 import { listPrijaveRequest } from "../../services/prijaveService";
 import { getEnrollmentFinalizationSummaryRequest } from "../../services/upisService";
 import type { ActivityRow } from "../../types/models/dashboard";
-
-const getCurrentCycleLabel = (): string => {
-  return String(new Date().getFullYear());
-};
-
-const toTimeLabel = (value: string | null | undefined): string => {
-  if (!value) {
-    return "--:--";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "--:--";
-  }
-
-  return date.toLocaleTimeString("sr-RS", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-};
-
-const toTimestamp = (value: string | null | undefined): number => {
-  if (!value) {
-    return 0;
-  }
-
-  const parsed = new Date(value).getTime();
-  return Number.isNaN(parsed) ? 0 : parsed;
-};
+import { formatTimeLabel, getCurrentYearString, toTimestamp } from "../../utils/utils";
 
 type DashboardActivityRow = ActivityRow & {
   timestamp: number;
@@ -102,7 +73,7 @@ export default function DashboardPage(): ReactElement {
           sortBy: "datum_prijave",
           sortDirection: "desc",
         }),
-        getEnrollmentFinalizationSummaryRequest(token, getCurrentCycleLabel()),
+        getEnrollmentFinalizationSummaryRequest(token, getCurrentYearString()),
         listAuditLogsRequest(token, 200),
       ]);
 
@@ -128,7 +99,7 @@ export default function DashboardPage(): ReactElement {
           const details = row.details ? ` - ${row.details}` : "";
 
           return {
-            time: toTimeLabel(row.eventTime),
+            time: formatTimeLabel(row.eventTime),
             module: moduleName,
             description: `${operation}${entityKey}${details}`,
             user: row.dbUser ?? "-",
@@ -158,26 +129,38 @@ export default function DashboardPage(): ReactElement {
         <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-300 bg-white p-6">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Kontrolna tabla</h1>
-            <p className="text-sm text-slate-600">Upisni ciklus {getCurrentCycleLabel()}</p>
+            <p className="text-sm text-slate-600">Upisni ciklus {getCurrentYearString()}</p>
           </div>
           <div className="flex gap-2">
             <Link
               to="/kandidati"
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
             >
-              Modul kandidati
+              Kandidati
             </Link>
             <Link
               to="/prijave"
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
             >
-              Modul prijave
+              Prijave
             </Link>
             <Link
               to="/upis"
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
             >
-              Modul upis
+              Upis
+            </Link>
+            <Link
+              to="/konacne-rang-liste"
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+            >
+              Rang liste
+            </Link>
+            <Link
+              to="/finalizacija-upisa"
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+            >
+              Finalizacija upisa
             </Link>
             <button
               type="button"
