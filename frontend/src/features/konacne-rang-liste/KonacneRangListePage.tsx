@@ -139,7 +139,6 @@ export default function KonacneRangListePage(): ReactElement {
 
   useEffect(() => {
     void loadPrograms();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   useEffect(() => {
@@ -149,7 +148,6 @@ export default function KonacneRangListePage(): ReactElement {
     }
 
     void loadRankingItems(Number(selectedRankingId));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, selectedRankingId]);
 
   const onSearch = async (): Promise<void> => {
@@ -311,7 +309,7 @@ export default function KonacneRangListePage(): ReactElement {
                 { key: "mesta", header: "Broj mesta", render: (row) => row.brojMesta ?? "-" },
                 {
                   key: "kandidati",
-                  header: "Kandidata",
+                  header: "Ukupno kandidata",
                   render: (row) => row.ukupnoKandidata ?? "-",
                 },
                 {

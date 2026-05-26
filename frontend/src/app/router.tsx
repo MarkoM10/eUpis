@@ -7,6 +7,7 @@ import KandidatiPage from "../features/kandidati/KandidatiPage";
 import PrijavePage from "../features/prijave/PrijavePage";
 import KonacneRangListePage from "../features/konacne-rang-liste/KonacneRangListePage";
 import UpisPage from "../features/upis/UpisPage";
+import KonkursPage from "../features/konkurs/KonkursPage";
 
 export const router = createBrowserRouter([
   {
@@ -38,6 +39,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute allowedRoles={["admin", "student"]}>
         <PrijavePage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/konkurs",
+    element: (
+      <ProtectedRoute allowedRoles={["admin"]}>
+        <KonkursPage />
       </ProtectedRoute>
     ),
   },

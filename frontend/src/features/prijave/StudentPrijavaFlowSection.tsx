@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { updateAuthSession } from "../../redux/slices/authSlice";
 import { loadFakulteti } from "../../redux/slices/prijaveSlice";
 import { sessionRequest } from "../../services/authService";
-import { listStudyProgramsRequest } from "../../services/upisService";
+import { listActiveKonkursiRequest } from "../../services/konkursService";
 import {
   createPrijavaRequest,
   getPrijavaDocumentsRequest,
@@ -18,6 +18,7 @@ import type { PrijavaFormState } from "../../types/forms/prijavaForm";
 import type { PrijavaDocumentsRecord } from "../../types/models/prijavaDocument";
 import type { Prijava, PrijavaPayload } from "../../types/models/prijava";
 import type { UserRole } from "../../types/models/auth";
+import type { ActiveKonkursOption } from "../../types/models/konkurs";
 import type { StudyProgramOption } from "../../types/models/upis";
 import { getCurrentYearString, getTodayDateISO } from "../../utils/utils";
 import StudentExistingPrijavaSection from "./StudentExistingPrijavaSection";
@@ -39,6 +40,7 @@ const createEmptyPrijavaForm = (): PrijavaFormState => ({
   brojPrijave: "",
   datumPrijave: getTodayDateISO(),
   skolskaGodina: getCurrentYearString(),
+  idKonkursa: "",
   idPrograma: "",
   statusPrijave: "Podneta",
   konkursniRok: "",
@@ -109,6 +111,7 @@ const toPayload = (form: PrijavaFormState): PrijavaPayload => ({
   brojPrijave: form.brojPrijave ? Number(form.brojPrijave) : null,
   datumPrijave: form.datumPrijave || null,
   skolskaGodina: form.skolskaGodina,
+  idKonkursa: form.idKonkursa ? Number(form.idKonkursa) : null,
   idPrograma: form.idPrograma ? Number(form.idPrograma) : null,
   statusPrijave: "Podneta",
   konkursniRok: form.konkursniRok || null,
@@ -168,6 +171,7 @@ const buildExistingPrijavaFromPayload = (
   brojPrijave,
   datumPrijave: payload.datumPrijave,
   skolskaGodina,
+  idKonkursa: payload.idKonkursa,
   idPrograma: payload.idPrograma,
   statusPrijave: "Podneta",
   konkursniRok: payload.konkursniRok,
@@ -195,10 +199,24 @@ export default function StudentPrijavaFlowSection({
   const [studentDocumentKey, setStudentDocumentKey] = useState<ActivePrijavaKey | null>(null);
   const [existingStudentPrijava, setExistingStudentPrijava] = useState<Prijava | null>(null);
   const [isCheckingExistingPrijava, setIsCheckingExistingPrijava] = useState(false);
-  const [studyPrograms, setStudyPrograms] = useState<StudyProgramOption[]>([]);
+  const [activeKonkursi, setActiveKonkursi] = useState<ActiveKonkursOption[]>([]);
   const [wizardStep, setWizardStep] = useState<1 | 2>(1);
   const [isSavingKandidat, setIsSavingKandidat] = useState(false);
   const [isKandidatPrepared, setIsKandidatPrepared] = useState(false);
+
+  const selectedKonkurs =
+    form.idKonkursa && Number.isFinite(Number(form.idKonkursa))
+      ? (activeKonkursi.find((k) => k.idKonkursa === Number(form.idKonkursa)) ?? null)
+      : null;
+
+  const studyPrograms: StudyProgramOption[] = selectedKonkurs
+    ? selectedKonkurs.stavke.map((stavka) => ({
+        idPrograma: stavka.idPrograma,
+        nazivPrograma: stavka.nazivPrograma ?? "Nepoznat program",
+        modul: stavka.modul ?? "",
+        brojDostupnihMesta: stavka.brojDostupnihMesta,
+      }))
+    : [];
 
   const resetDocuments = (): void => {
     setDocuments(emptyDocuments);
@@ -206,16 +224,16 @@ export default function StudentPrijavaFlowSection({
     setUverenjeForm(emptyUverenjeForm);
   };
 
-  const loadStudyPrograms = async (): Promise<void> => {
+  const loadActiveKonkursi = async (): Promise<void> => {
     if (!token) {
       return;
     }
 
     try {
-      const response = await listStudyProgramsRequest(token);
-      setStudyPrograms(response.data.rows);
+      const response = await listActiveKonkursiRequest(token);
+      setActiveKonkursi(response.data.rows);
     } catch {
-      setStudyPrograms([]);
+      setActiveKonkursi([]);
     }
   };
 
@@ -381,6 +399,16 @@ export default function StudentPrijavaFlowSection({
       return;
     }
 
+    if (!form.idKonkursa) {
+      onSetValidationError("Izaberite konkurs pre slanja prijave.");
+      return;
+    }
+
+    if (!form.idPrograma) {
+      onSetValidationError("Izaberite program/modul iz konkursa pre slanja prijave.");
+      return;
+    }
+
     setIsSubmitting(true);
     onClearFeedback();
 
@@ -406,6 +434,7 @@ export default function StudentPrijavaFlowSection({
 
     try {
       await upsertStudentKandidatRequest(token, toStudentKandidatPayload(form));
+      await loadActiveKonkursi();
       setIsKandidatPrepared(true);
       setWizardStep(2);
       onSetSuccessMessage("Podaci kandidata su uspesno sacuvani. Nastavite na korak prijave.");
@@ -423,7 +452,7 @@ export default function StudentPrijavaFlowSection({
 
   useEffect(() => {
     void dispatch(loadFakulteti());
-    void loadStudyPrograms();
+    void loadActiveKonkursi();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -434,6 +463,18 @@ export default function StudentPrijavaFlowSection({
   }, [form.statusPrijave]);
 
   const onFormChange = (field: keyof PrijavaFormState, value: string): void => {
+    if (field === "idKonkursa") {
+      const konkurs = activeKonkursi.find((item) => item.idKonkursa === Number(value));
+      setForm((prev) => ({
+        ...prev,
+        idKonkursa: value,
+        idPrograma: "",
+        skolskaGodina: konkurs?.skolskaGodina ?? prev.skolskaGodina,
+        konkursniRok: konkurs?.konkursniRok ?? prev.konkursniRok,
+      }));
+      return;
+    }
+
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -489,6 +530,8 @@ export default function StudentPrijavaFlowSection({
       uverenjeForm={uverenjeForm}
       documents={documents}
       fakulteti={fakulteti}
+      activeKonkursi={activeKonkursi}
+      selectedKonkurs={selectedKonkurs}
       studyPrograms={studyPrograms}
       isDocumentsLoading={isDocumentsLoading}
       isSubmitting={isSubmitting}

@@ -145,6 +145,12 @@ export default function DashboardPage(): ReactElement {
               Prijave
             </Link>
             <Link
+              to="/konkurs"
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+            >
+              Konkurs
+            </Link>
+            <Link
               to="/upis"
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
             >

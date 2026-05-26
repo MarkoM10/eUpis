@@ -2,6 +2,7 @@ export interface Prijava {
   brojPrijave: number;
   datumPrijave: string | null;
   skolskaGodina: string;
+  idKonkursa?: number | null;
   idPrograma?: number | null;
   statusPrijave: string | null;
   konkursniRok: string | null;
@@ -14,6 +15,7 @@ export interface PrijavaPayload {
   brojPrijave?: number | null;
   datumPrijave: string | null;
   skolskaGodina: string;
+  idKonkursa: number | null;
   idPrograma: number | null;
   statusPrijave: string | null;
   konkursniRok: string | null;

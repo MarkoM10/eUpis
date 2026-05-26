@@ -35,6 +35,7 @@ type EditingPrijavaKey = {
 
 type AdminPrijavaEditForm = {
   datumPrijave: string;
+  idKonkursa: string;
   idPrograma: string;
   statusPrijave: string;
   konkursniRok: string;
@@ -45,6 +46,7 @@ type AdminPrijavaEditForm = {
 
 const emptyAdminPrijavaEditForm: AdminPrijavaEditForm = {
   datumPrijave: "",
+  idKonkursa: "",
   idPrograma: "",
   statusPrijave: "Podneta",
   konkursniRok: "",
@@ -55,6 +57,7 @@ const emptyAdminPrijavaEditForm: AdminPrijavaEditForm = {
 
 const toAdminEditForm = (row: Prijava): AdminPrijavaEditForm => ({
   datumPrijave: row.datumPrijave ? row.datumPrijave.slice(0, 10) : "",
+  idKonkursa: row.idKonkursa != null ? String(row.idKonkursa) : "",
   idPrograma: row.idPrograma != null ? String(row.idPrograma) : "",
   statusPrijave: row.statusPrijave ?? "Podneta",
   konkursniRok: row.konkursniRok ?? "",
@@ -66,6 +69,7 @@ const toAdminEditForm = (row: Prijava): AdminPrijavaEditForm => ({
 const toUpdatePrijavaPayload = (form: AdminPrijavaEditForm): PrijavaPayload => ({
   datumPrijave: form.datumPrijave || null,
   skolskaGodina: "",
+  idKonkursa: form.idKonkursa ? Number(form.idKonkursa) : null,
   idPrograma: form.idPrograma ? Number(form.idPrograma) : null,
   statusPrijave: form.statusPrijave || null,
   konkursniRok: form.konkursniRok || null,
@@ -329,6 +333,12 @@ export default function PrijavePage(): ReactElement {
           {isAdmin ? (
             <div className="flex gap-2">
               <Link
+                to="/konkurs"
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+              >
+                Modul konkurs
+              </Link>
+              <Link
                 to="/upis"
                 className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
               >
@@ -382,6 +392,12 @@ export default function PrijavePage(): ReactElement {
                   placeholder="Datum prijave"
                   value={editForm.datumPrijave}
                   onChange={(event) => onEditFormChange("datumPrijave", event.target.value)}
+                />
+                <input
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  placeholder="ID konkursa"
+                  value={editForm.idKonkursa}
+                  onChange={(event) => onEditFormChange("idKonkursa", event.target.value)}
                 />
                 <input
                   className="rounded-lg border border-slate-300 px-3 py-2 text-sm"

@@ -10,6 +10,7 @@ import { kandidatiRouter } from "./modules/kandidati/kandidati.routes";
 import { prijaveRouter } from "./modules/prijave/prijave.routes";
 import { upisRouter } from "./modules/upis/upis.routes";
 import { auditRouter } from "./modules/audit/audit.routes";
+import { konkursRouter } from "./modules/konkurs/konkurs.routes";
 
 const app = express();
 
@@ -84,6 +85,7 @@ app.use("/api/kandidati", kandidatiRouter);
 app.use("/api/prijave", prijaveRouter);
 app.use("/api/upis", upisRouter);
 app.use("/api/audit", auditRouter);
+app.use("/api/konkursi", konkursRouter);
 
 app.use(errorMiddleware);
 

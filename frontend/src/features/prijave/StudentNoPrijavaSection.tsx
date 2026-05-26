@@ -5,6 +5,7 @@ import type {
 } from "../../types/forms/prijavaDocumentForm";
 import type { PrijavaFormState } from "../../types/forms/prijavaForm";
 import type { FakultetOption } from "../../types/models/fakultet";
+import type { ActiveKonkursOption } from "../../types/models/konkurs";
 import type { PrijavaDocumentsRecord } from "../../types/models/prijavaDocument";
 import type { StudyProgramOption } from "../../types/models/upis";
 
@@ -14,6 +15,8 @@ interface StudentNoPrijavaSectionProps {
   uverenjeForm: UverenjeDocumentFormState;
   documents: PrijavaDocumentsRecord;
   fakulteti: FakultetOption[];
+  activeKonkursi: ActiveKonkursOption[];
+  selectedKonkurs: ActiveKonkursOption | null;
   studyPrograms: StudyProgramOption[];
   isDocumentsLoading: boolean;
   isSubmitting: boolean;
@@ -36,6 +39,8 @@ export default function StudentNoPrijavaSection({
   uverenjeForm,
   documents,
   fakulteti,
+  activeKonkursi,
+  selectedKonkurs,
   studyPrograms,
   isDocumentsLoading,
   isSubmitting,
@@ -147,6 +152,21 @@ export default function StudentNoPrijavaSection({
             </div>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <select
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                value={form.idKonkursa}
+                onChange={(event) => onFormChange("idKonkursa", event.target.value)}
+                disabled={activeKonkursi.length === 0}
+              >
+                <option value="">
+                  {activeKonkursi.length === 0 ? "Nema aktivnih konkursa" : "Izaberite konkurs"}
+                </option>
+                {activeKonkursi.map((konkurs) => (
+                  <option key={konkurs.idKonkursa} value={String(konkurs.idKonkursa)}>
+                    #{konkurs.idKonkursa} | {konkurs.skolskaGodina} | {konkurs.konkursniRok}
+                  </option>
+                ))}
+              </select>
               <input
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 placeholder="JMBG"
@@ -163,14 +183,17 @@ export default function StudentNoPrijavaSection({
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 placeholder="Skolska godina"
                 value={form.skolskaGodina}
-                onChange={(event) => onFormChange("skolskaGodina", event.target.value)}
+                readOnly
               />
               <select
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 value={form.idPrograma}
                 onChange={(event) => onFormChange("idPrograma", event.target.value)}
+                disabled={!selectedKonkurs || activeKonkursi.length === 0}
               >
-                <option value="">Izaberite program i modul</option>
+                <option value="">
+                  {selectedKonkurs ? "Izaberite program i modul" : "Prvo izaberite konkurs"}
+                </option>
                 {studyPrograms.map((program) => (
                   <option key={program.idPrograma} value={String(program.idPrograma)}>
                     {program.nazivPrograma} | {program.modul}
@@ -186,12 +209,23 @@ export default function StudentNoPrijavaSection({
               <select
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 value={form.konkursniRok}
-                onChange={(event) => onFormChange("konkursniRok", event.target.value)}
+                disabled
               >
                 <option value="">Izaberite konkursni rok</option>
-                <option value="Septembar">Septembarski</option>
+                {selectedKonkurs ? (
+                  <option value={selectedKonkurs.konkursniRok}>
+                    {selectedKonkurs.konkursniRok}
+                  </option>
+                ) : null}
               </select>
             </div>
+
+            {activeKonkursi.length === 0 ? (
+              <p className="mt-3 text-sm text-amber-700">
+                Trenutno nema aktivnog konkursa u otvorenom roku. Administrator treba da postavi
+                status konkursa na Aktivan i period koji ukljucuje danasnji datum.
+              </p>
+            ) : null}
           </section>
 
           <section className="rounded-2xl border border-slate-300 bg-white p-4">

@@ -2,6 +2,7 @@ export interface PrijavaFormState {
   brojPrijave: string;
   datumPrijave: string;
   skolskaGodina: string;
+  idKonkursa: string;
   idPrograma: string;
   statusPrijave: string;
   konkursniRok: string;

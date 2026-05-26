@@ -22,6 +22,7 @@ import type {
 } from "../../types/modules/prijave";
 import type { UserRole } from "../../types/modules/auth";
 import { normalizeSchoolYear } from "../../utils/utils";
+import { validateKonkursForPrijavaService } from "../konkurs/konkurs.service";
 
 export const listPrijaveService = async (
   query: Record<string, unknown>,
@@ -133,16 +134,29 @@ const ensureProgramSelected = (idPrograma: number | null): void => {
   }
 };
 
+const ensureKonkursSelected = (idKonkursa: number | null): void => {
+  if (!idKonkursa || !Number.isFinite(idKonkursa) || idKonkursa <= 0) {
+    throw new ApiError(400, "Nedostaje konkurs", "Za prijavu je obavezno izabrati konkurs.");
+  }
+};
+
 export const createPrijavaService = async (
   payload: PrijavaMutationInput,
   actorRole: UserRole,
   actorUserId?: number,
 ): Promise<PrijavaKey> => {
   ensureProgramSelected(payload.idPrograma);
+  ensureKonkursSelected(payload.idKonkursa);
+
+  const konkursValidation = await validateKonkursForPrijavaService(
+    payload.idKonkursa as number,
+    payload.idPrograma as number,
+  );
 
   const payloadWithOwner: PrijavaMutationInput = {
     ...payload,
-    skolskaGodina: normalizeSchoolYear(payload.skolskaGodina),
+    skolskaGodina: normalizeSchoolYear(konkursValidation.skolskaGodina),
+    konkursniRok: konkursValidation.konkursniRok,
     idKorisnika: actorRole === "student" ? (actorUserId ?? null) : (payload.idKorisnika ?? null),
   };
 
