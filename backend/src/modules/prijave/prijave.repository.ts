@@ -268,6 +268,38 @@ export const updatePrijava = async (
   key: PrijavaKey,
   input: PrijavaMutationInput,
 ): Promise<void> => {
+  const hasImePrezimeInPayload = Object.prototype.hasOwnProperty.call(input, "imePrezime");
+
+  if (hasImePrezimeInPayload) {
+    const existing = await getPrijavaByKey(key);
+    const incomingImePrezime = input.imePrezime?.trim() ?? null;
+    const existingImePrezime = existing.imePrezime?.trim() ?? null;
+
+    if (incomingImePrezime !== existingImePrezime) {
+      const oracleMessage =
+        "Nije dozvoljena izmena imena i prezimena: vrednost mora ostati ista kao u bazi.";
+
+      throw new ApiError(
+        400,
+        "Nije dozvoljena izmena imena i prezimena",
+        "Polje imePrezime mora ostati isto kao u bazi prilikom azuriranja prijave.",
+        oracleMessage,
+      );
+    }
+  }
+
+  const bindParams: Record<string, string | number | null> = {
+    brojPrijave: key.brojPrijave,
+    skolskaGodina: key.skolskaGodina,
+    datumPrijave: input.datumPrijave,
+    idKonkursa: input.idKonkursa,
+    idPrograma: input.idPrograma,
+    statusPrijave: input.statusPrijave,
+    konkursniRok: input.konkursniRok,
+    jmbg: input.jmbg,
+    sistemskiUpdate: input.sistemskiUpdate ?? null,
+  };
+
   await executeSql(
     `
       UPDATE Prijava
@@ -278,23 +310,11 @@ export const updatePrijava = async (
         status_prijave = :statusPrijave,
         konkursni_rok = :konkursniRok,
         jmbg = :jmbg,
-        ime_prezime = :imePrezime,
         sistemski_update = NVL(:sistemskiUpdate, 'N')
       WHERE broj_prijave = :brojPrijave
         AND skolska_godina = :skolskaGodina
     `,
-    {
-      brojPrijave: key.brojPrijave,
-      skolskaGodina: key.skolskaGodina,
-      datumPrijave: input.datumPrijave,
-      idKonkursa: input.idKonkursa,
-      idPrograma: input.idPrograma,
-      statusPrijave: input.statusPrijave,
-      konkursniRok: input.konkursniRok,
-      jmbg: input.jmbg,
-      imePrezime: input.imePrezime?.trim() || null,
-      sistemskiUpdate: input.sistemskiUpdate ?? null,
-    },
+    bindParams,
   );
 };
 

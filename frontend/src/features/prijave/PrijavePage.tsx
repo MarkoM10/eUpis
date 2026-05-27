@@ -10,8 +10,10 @@ import {
   getPrijavaDocumentsRequest,
   updatePrijavaStatusRequest,
 } from "../../services/prijaveService";
+import { listKonkursiRequest } from "../../services/konkursService";
 import type { PrijavaDocumentType } from "../../types/models/prijavaDocument";
 import type { Prijava, PrijavaPayload } from "../../types/models/prijava";
+import type { Konkurs } from "../../types/models/konkurs";
 import {
   clearPrijaveError,
   loadPrijaveRows,
@@ -79,6 +81,15 @@ const toUpdatePrijavaPayload = (form: AdminPrijavaEditForm): PrijavaPayload => (
   kandidat: null,
 });
 
+const buildKonkursLabel = (konkurs: Konkurs): string =>
+  `#${konkurs.idKonkursa} | ${konkurs.skolskaGodina} | ${konkurs.konkursniRok} | ${konkurs.nazivFakulteta ?? "Fakultet"}`;
+
+const buildProgramLabel = (
+  nazivPrograma: string | null,
+  modul: string | null,
+  idPrograma: number,
+): string => `${nazivPrograma ?? `Program ${idPrograma}`}${modul ? ` | ${modul}` : ""}`;
+
 export default function PrijavePage(): ReactElement {
   const dispatch = useAppDispatch();
   const { token, role } = useAppSelector((state) => state.auth);
@@ -99,6 +110,7 @@ export default function PrijavePage(): ReactElement {
     Record<string, { diplomaHasFile: boolean; uverenjeHasFile: boolean; isLoading: boolean }>
   >({});
   const [adminStatusByKey, setAdminStatusByKey] = useState<Record<string, string>>({});
+  const [konkursiById, setKonkursiById] = useState<Record<number, Konkurs>>({});
   const [savingStatusKey, setSavingStatusKey] = useState<string | null>(null);
   const [downloadingDocumentKey, setDownloadingDocumentKey] = useState<string | null>(null);
   const [editingPrijavaKey, setEditingPrijavaKey] = useState<EditingPrijavaKey | null>(null);
@@ -128,6 +140,16 @@ export default function PrijavePage(): ReactElement {
   const onEditFormChange = (field: keyof AdminPrijavaEditForm, value: string): void => {
     setEditForm((prev) => ({ ...prev, [field]: value }));
   };
+
+  const currentKonkurs = editForm.idKonkursa
+    ? (konkursiById[Number(editForm.idKonkursa)] ?? null)
+    : null;
+  const currentProgram =
+    currentKonkurs && editForm.idPrograma
+      ? (currentKonkurs.stavke.find(
+          (stavka) => stavka.idPrograma === Number(editForm.idPrograma),
+        ) ?? null)
+      : null;
 
   const onStartEditPrijava = (row: Prijava): void => {
     clearFeedback();
@@ -183,6 +205,25 @@ export default function PrijavePage(): ReactElement {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin || !token) {
+      setKonkursiById({});
+      return;
+    }
+
+    void listKonkursiRequest(token)
+      .then((response) => {
+        const next = response.data.rows.reduce<Record<number, Konkurs>>((acc, konkurs) => {
+          acc[konkurs.idKonkursa] = konkurs;
+          return acc;
+        }, {});
+        setKonkursiById(next);
+      })
+      .catch(() => {
+        setKonkursiById({});
+      });
+  }, [isAdmin, token]);
 
   useEffect(() => {
     if (!isAdmin || !token || rows.length === 0) {
@@ -339,12 +380,6 @@ export default function PrijavePage(): ReactElement {
                 Modul konkurs
               </Link>
               <Link
-                to="/upis"
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
-              >
-                Modul upis
-              </Link>
-              <Link
                 to="/dashboard"
                 className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
               >
@@ -393,18 +428,26 @@ export default function PrijavePage(): ReactElement {
                   value={editForm.datumPrijave}
                   onChange={(event) => onEditFormChange("datumPrijave", event.target.value)}
                 />
-                <input
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  placeholder="ID konkursa"
-                  value={editForm.idKonkursa}
-                  onChange={(event) => onEditFormChange("idKonkursa", event.target.value)}
-                />
-                <input
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  placeholder="ID programa"
-                  value={editForm.idPrograma}
-                  onChange={(event) => onEditFormChange("idPrograma", event.target.value)}
-                />
+                <div className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-800">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">Konkurs</div>
+                  <div>
+                    {currentKonkurs ? buildKonkursLabel(currentKonkurs) : "Nije izabran konkurs"}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-800">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">Program</div>
+                  <div>
+                    {currentProgram
+                      ? buildProgramLabel(
+                          currentProgram.nazivPrograma,
+                          currentProgram.modul,
+                          currentProgram.idPrograma,
+                        )
+                      : editForm.idPrograma
+                        ? `Program #${editForm.idPrograma}`
+                        : "Nije izabran program"}
+                  </div>
+                </div>
                 <select
                   className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
                   value={editForm.statusPrijave}

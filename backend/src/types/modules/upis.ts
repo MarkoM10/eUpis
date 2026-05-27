@@ -1,5 +1,6 @@
 export interface StudyProgramOption {
   idPrograma: number;
+  idFakulteta: number | null;
   nazivPrograma: string;
   modul: string;
   brojDostupnihMesta: number | null;
@@ -9,6 +10,7 @@ export interface EligiblePrijavaRow {
   brojPrijave: number;
   skolskaGodina: string;
   datumPrijave: string | null;
+  idKonkursa: number | null;
   idPrograma: number | null;
   nazivPrograma: string | null;
   modul: string | null;
@@ -28,6 +30,7 @@ export interface SaveExamScoreInput {
 
 export interface RankingListSummary {
   idRangListe: number;
+  idKonkursa: number | null;
   idPrograma: number | null;
   nazivPrograma: string | null;
   modul: string | null;
@@ -50,6 +53,7 @@ export interface RankingItem {
 }
 
 export interface GenerateRankingInput {
+  idKonkursa?: number;
   idPrograma: number;
   skolskaGodina: string;
   brojMesta: number;
@@ -113,6 +117,7 @@ export interface PendingEnrollmentFinalizationRow {
   idUpisa: number;
   brojPrijave: number;
   skolskaGodina: string;
+  idKonkursa: number | null;
   imePrezime: string | null;
   studijskiProgram: string | null;
   brojPoena: number | null;

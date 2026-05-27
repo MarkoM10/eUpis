@@ -7,7 +7,6 @@ import { OracleMessageCard } from "../../components/feedback/OracleMessageCard";
 import { toApiClientError } from "../../services/api";
 import { listAuditLogsRequest } from "../../services/auditService";
 import { listPrijaveRequest } from "../../services/prijaveService";
-import { getEnrollmentFinalizationSummaryRequest } from "../../services/upisService";
 import type { ActivityRow } from "../../types/models/dashboard";
 import { formatTimeLabel, getCurrentYearString, toTimestamp } from "../../utils/utils";
 
@@ -33,14 +32,12 @@ interface DashboardMetrics {
   totalPrijave: number;
   approvedPrijave: number;
   rejectedPrijave: number;
-  enrolledStudents: number;
 }
 
 const emptyMetrics: DashboardMetrics = {
   totalPrijave: 0,
   approvedPrijave: 0,
   rejectedPrijave: 0,
-  enrolledStudents: 0,
 };
 
 export default function DashboardPage(): ReactElement {
@@ -66,14 +63,13 @@ export default function DashboardPage(): ReactElement {
     setOracleDetails(undefined);
 
     try {
-      const [prijaveResponse, finalizationSummaryResponse, auditResponse] = await Promise.all([
+      const [prijaveResponse, auditResponse] = await Promise.all([
         listPrijaveRequest(token, {
           page: 1,
           pageSize: 5000,
           sortBy: "datum_prijave",
           sortDirection: "desc",
         }),
-        getEnrollmentFinalizationSummaryRequest(token, getCurrentYearString()),
         listAuditLogsRequest(token, 200),
       ]);
 
@@ -82,13 +78,10 @@ export default function DashboardPage(): ReactElement {
       const approvedPrijave = prijaveRows.filter((row) => row.statusPrijave === "Odobrena").length;
       const rejectedPrijave = prijaveRows.filter((row) => row.statusPrijave === "Odbijena").length;
 
-      const enrolledStudents = finalizationSummaryResponse.data.ukupnoFinalizovanihUpisa ?? 0;
-
       setMetrics({
         totalPrijave: prijaveRows.length,
         approvedPrijave,
         rejectedPrijave,
-        enrolledStudents,
       });
 
       const mappedActivities: DashboardActivityRow[] = (auditResponse.data.rows ?? [])
@@ -150,24 +143,6 @@ export default function DashboardPage(): ReactElement {
             >
               Konkurs
             </Link>
-            <Link
-              to="/upis"
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
-            >
-              Upis
-            </Link>
-            <Link
-              to="/konacne-rang-liste"
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
-            >
-              Rang liste
-            </Link>
-            <Link
-              to="/finalizacija-upisa"
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
-            >
-              Finalizacija upisa
-            </Link>
             <button
               type="button"
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
@@ -178,7 +153,7 @@ export default function DashboardPage(): ReactElement {
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <article className="rounded-2xl border border-slate-300 bg-white p-4">
             <h2 className="text-sm text-slate-600">Ukupno prijava</h2>
             <p className="mt-2 text-3xl font-bold">{metrics.totalPrijave}</p>
@@ -190,10 +165,6 @@ export default function DashboardPage(): ReactElement {
           <article className="rounded-2xl border border-slate-300 bg-white p-4">
             <h2 className="text-sm text-slate-600">Odbijene prijave</h2>
             <p className="mt-2 text-3xl font-bold">{metrics.rejectedPrijave}</p>
-          </article>
-          <article className="rounded-2xl border border-slate-300 bg-white p-4">
-            <h2 className="text-sm text-slate-600">Upisani studenti</h2>
-            <p className="mt-2 text-3xl font-bold">{metrics.enrolledStudents}</p>
           </article>
         </section>
         <div className="flex justify-end">

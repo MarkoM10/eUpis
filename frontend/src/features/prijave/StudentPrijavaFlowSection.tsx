@@ -212,6 +212,7 @@ export default function StudentPrijavaFlowSection({
   const studyPrograms: StudyProgramOption[] = selectedKonkurs
     ? selectedKonkurs.stavke.map((stavka) => ({
         idPrograma: stavka.idPrograma,
+        idFakulteta: selectedKonkurs.idFakulteta,
         nazivPrograma: stavka.nazivPrograma ?? "Nepoznat program",
         modul: stavka.modul ?? "",
         brojDostupnihMesta: stavka.brojDostupnihMesta,

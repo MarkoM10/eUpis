@@ -113,12 +113,17 @@ const ensureStudentIsApprovedForEnrollment = async (
 };
 
 const ensureRankingList = async (
+  idKonkursa: number | null,
   idPrograma: number,
   studijskiProgram: string,
   skolskaGodina: string,
   brojMesta: number,
 ): Promise<RankingListSummary> => {
-  const existing = await findRankingListByProgramAndYear(idPrograma, skolskaGodina);
+  const existing = await findRankingListByProgramAndYear(
+    idPrograma,
+    skolskaGodina,
+    idKonkursa ?? undefined,
+  );
 
   if (existing) {
     if (existing.brojMesta !== brojMesta) {
@@ -135,7 +140,13 @@ const ensureRankingList = async (
 
   let idRangListe: number;
   try {
-    idRangListe = await createRankingList(idPrograma, studijskiProgram, skolskaGodina, brojMesta);
+    idRangListe = await createRankingList(
+      idKonkursa,
+      idPrograma,
+      studijskiProgram,
+      skolskaGodina,
+      brojMesta,
+    );
   } catch (error) {
     if (isOracleUniqueConstraintError(error)) {
       const concurrentExisting = await findRankingListByProgramAndYear(idPrograma, skolskaGodina);
@@ -150,6 +161,7 @@ const ensureRankingList = async (
 
   return {
     idRangListe,
+    idKonkursa,
     idPrograma,
     nazivPrograma: null,
     modul: null,
@@ -179,12 +191,24 @@ const calculateRanks = (items: RankingItem[]): Array<{ idStavke: number; rangMes
   });
 };
 
-export const listStudyProgramsService = async (): Promise<StudyProgramOption[]> => {
-  return listStudyPrograms();
+export const listStudyProgramsService = async (
+  idFakulteta?: number,
+): Promise<StudyProgramOption[]> => {
+  return listStudyPrograms(idFakulteta);
 };
 
 export const listEligiblePrijaveService = async (skolskaGodina?: string) => {
   return listEligiblePrijave(skolskaGodina ? normalizeSchoolYear(skolskaGodina) : undefined);
+};
+
+export const listEligiblePrijaveByKonkursService = async (
+  idKonkursa: number,
+  skolskaGodina?: string,
+) => {
+  return listEligiblePrijave(
+    skolskaGodina ? normalizeSchoolYear(skolskaGodina) : undefined,
+    idKonkursa,
+  );
 };
 
 export const saveExamScoreService = async (
@@ -242,6 +266,7 @@ export const saveExamScoreService = async (
   const seats = matchedProgram?.brojDostupnihMesta ?? 0;
   const studijskiProgram = toProgramLabel(matchedProgram.nazivPrograma, matchedProgram.modul);
   const rankingList = await ensureRankingList(
+    prijava.idKonkursa ?? null,
     prijava.idPrograma,
     studijskiProgram,
     normalizedSchoolYear,
@@ -273,6 +298,10 @@ export const generateRankingService = async (
     "ID programa mora biti validan pozitivan broj.",
   );
   const normalizedSchoolYear = normalizeSchoolYear(payload.skolskaGodina);
+  const idKonkursa =
+    payload.idKonkursa != null && Number.isFinite(Number(payload.idKonkursa))
+      ? Number(payload.idKonkursa)
+      : undefined;
 
   const programs = await listStudyPrograms();
   const program = programs.find((entry) => entry.idPrograma === idPrograma);
@@ -281,15 +310,16 @@ export const generateRankingService = async (
   }
 
   const brojMesta = ensurePositiveNumber(
-    Number(program.brojDostupnihMesta ?? 0),
+    Number(payload.brojMesta),
     "Neispravan broj mesta",
-    "Broj dostupnih mesta iz sifarnika studijskih programa mora biti veci od 0.",
+    "Broj dostupnih mesta za izabrani konkurs i program mora biti veci od 0.",
   );
 
   const studijskiProgram = toProgramLabel(program.nazivPrograma, program.modul);
   const existingRankingList = await findRankingListByProgramAndYear(
     idPrograma,
     normalizedSchoolYear,
+    idKonkursa,
   );
 
   if (existingRankingList) {
@@ -304,8 +334,10 @@ export const generateRankingService = async (
     }
   }
 
-  const eligibleRows = await listEligiblePrijave(normalizedSchoolYear);
-  const programEligibleRows = eligibleRows.filter((row) => row.idPrograma === idPrograma);
+  const eligibleRows = await listEligiblePrijave(normalizedSchoolYear, idKonkursa);
+  const programEligibleRows = eligibleRows.filter(
+    (row) => row.idPrograma === idPrograma && (idKonkursa == null || row.idKonkursa === idKonkursa),
+  );
 
   if (programEligibleRows.length === 0) {
     throw new ApiError(
@@ -325,6 +357,7 @@ export const generateRankingService = async (
   }
 
   const rankingList = await ensureRankingList(
+    idKonkursa ?? programEligibleRows[0]?.idKonkursa ?? null,
     idPrograma,
     studijskiProgram,
     normalizedSchoolYear,
@@ -374,23 +407,11 @@ export const finalizeRankingService = async (
     );
   }
 
-  let effectiveSeats = rankingList.brojMesta ?? 0;
-  if (rankingList.idPrograma != null) {
-    const programs = await listStudyPrograms();
-    const program = programs.find((entry) => entry.idPrograma === rankingList.idPrograma);
-
-    if (program) {
-      effectiveSeats = ensurePositiveNumber(
-        Number(program.brojDostupnihMesta ?? 0),
-        "Neispravan broj mesta",
-        "Broj dostupnih mesta iz sifarnika studijskih programa mora biti veci od 0.",
-      );
-
-      if (rankingList.brojMesta !== effectiveSeats) {
-        await updateRankingListSeats(rankingList.idRangListe, effectiveSeats);
-      }
-    }
-  }
+  const effectiveSeats = ensurePositiveNumber(
+    Number(rankingList.brojMesta ?? 0),
+    "Neispravan broj mesta",
+    "Broj dostupnih mesta na rang listi mora biti veci od 0.",
+  );
 
   const computedRanks = calculateRanks(items);
   for (const entry of computedRanks) {
@@ -441,10 +462,12 @@ export const finalizeRankingService = async (
 };
 
 export const listRankingListsService = async (
+  idKonkursa?: number,
   idPrograma?: number,
   skolskaGodina?: string,
 ): Promise<RankingListSummary[]> => {
   return listRankingLists(
+    idKonkursa,
     idPrograma,
     skolskaGodina ? normalizeSchoolYear(skolskaGodina) : undefined,
   );
@@ -515,9 +538,11 @@ export const downloadEnrollmentContractByPrijavaService = async (
 
 export const listPendingEnrollmentFinalizationsService = async (
   skolskaGodina?: string,
+  idKonkursa?: number,
 ): Promise<PendingEnrollmentFinalizationRow[]> => {
   return listPendingEnrollmentFinalizations(
     skolskaGodina ? normalizeSchoolYear(skolskaGodina) : undefined,
+    idKonkursa,
   );
 };
 

@@ -11,6 +11,7 @@ import {
   getNextKonkursStavkaId,
   insertKonkurs,
   insertKonkursStavka,
+  isProgramInFakultet,
   isProgramInKonkurs,
   listActiveKonkursiWithStavke,
   listKonkursiWithStavke,
@@ -89,6 +90,8 @@ const mapRowsToKonkursi = (
     if (!existing) {
       byId.set(row.ID_KONKURSA, {
         idKonkursa: row.ID_KONKURSA,
+        idFakulteta: row.ID_FAKULTETA,
+        nazivFakulteta: row.NAZIV_FAKULTETA,
         skolskaGodina: row.SKOLSKA_GODINA,
         konkursniRok: row.KONKURSNI_ROK,
         datumOd: row.DATUM_OD.toISOString().slice(0, 10),
@@ -141,6 +144,8 @@ export const listActiveKonkursiService = async (): Promise<ActiveKonkursOption[]
   const rows = await listActiveKonkursiWithStavke();
   return mapRowsToKonkursi(rows).map((k) => ({
     idKonkursa: k.idKonkursa,
+    idFakulteta: k.idFakulteta,
+    nazivFakulteta: k.nazivFakulteta,
     skolskaGodina: k.skolskaGodina,
     konkursniRok: k.konkursniRok,
     datumOd: k.datumOd,
@@ -159,6 +164,14 @@ export const createKonkursService = async (
   payload: CreateKonkursInput,
   actorUserId?: number,
 ): Promise<{ idKonkursa: number }> => {
+  if (!Number.isFinite(payload.idFakulteta) || payload.idFakulteta <= 0) {
+    throw new ApiError(
+      400,
+      "Nedostaje fakultet",
+      "Za kreiranje konkursa potrebno je izabrati fakultet.",
+    );
+  }
+
   if (!payload.skolskaGodina?.trim()) {
     throw new ApiError(400, "Nedostaje skolska godina", "Skolska godina je obavezna.");
   }
@@ -193,6 +206,7 @@ export const createKonkursService = async (
 
   await insertKonkurs({
     idKonkursa,
+    idFakulteta: Math.trunc(payload.idFakulteta),
     skolskaGodina: payload.skolskaGodina.trim(),
     godinaKonkursaLegacy,
     rokZaPrijavuLegacy: payload.datumDo,
@@ -228,6 +242,18 @@ export const createKonkursService = async (
     }
 
     seenPrograms.add(stavka.idPrograma);
+
+    const belongsToFakultet = await isProgramInFakultet(
+      stavka.idPrograma,
+      Math.trunc(payload.idFakulteta),
+    );
+    if (!belongsToFakultet) {
+      throw new ApiError(
+        400,
+        "Program nije deo fakulteta",
+        "Izabrani studijski program/modul ne pripada odabranom fakultetu.",
+      );
+    }
 
     const idStavkeKonkursa = await getNextKonkursStavkaId();
     await insertKonkursStavka({

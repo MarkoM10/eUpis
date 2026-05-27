@@ -145,8 +145,7 @@ export default function StudentNoPrijavaSection({
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">Korak 2: Podaci o prijavi</h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  Unesite podatke prijave i prilozite oba dokumenta. Ime i prezime je informativno
-                  polje i baza ga popunjava iz kandidata.
+                  Unesite podatke prijave i prilozite Diplomu i Uverenje o polozenim predmetima.
                 </p>
               </div>
             </div>
@@ -163,10 +162,17 @@ export default function StudentNoPrijavaSection({
                 </option>
                 {activeKonkursi.map((konkurs) => (
                   <option key={konkurs.idKonkursa} value={String(konkurs.idKonkursa)}>
-                    #{konkurs.idKonkursa} | {konkurs.skolskaGodina} | {konkurs.konkursniRok}
+                    #{konkurs.idKonkursa} | {konkurs.skolskaGodina} | {konkurs.konkursniRok} |{" "}
+                    {konkurs.nazivFakulteta ?? "Fakultet"}
                   </option>
                 ))}
               </select>
+              <input
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                placeholder="Fakultet"
+                value={selectedKonkurs?.nazivFakulteta ?? ""}
+                readOnly
+              />
               <input
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 placeholder="JMBG"

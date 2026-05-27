@@ -16,8 +16,12 @@ export class ApiClientError extends Error {
   oracleDetails?: string;
 
   constructor(payload: ApiErrorPayload) {
-    super(payload.message);
-    this.title = payload.title;
+    const hasOracleDetails =
+      typeof payload.oracleDetails === "string" && payload.oracleDetails.trim();
+    const resolvedMessage = hasOracleDetails ? payload.oracleDetails!.trim() : payload.message;
+
+    super(resolvedMessage);
+    this.title = hasOracleDetails ? "Oracle greska" : payload.title;
     this.oracleDetails = payload.oracleDetails;
   }
 }

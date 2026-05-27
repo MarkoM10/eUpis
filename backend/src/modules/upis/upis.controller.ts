@@ -15,6 +15,7 @@ import {
   generateRankingService,
   getEnrollmentFinalizationSummaryService,
   getStudentAdmissionStatusService,
+  listEligiblePrijaveByKonkursService,
   listPendingEnrollmentFinalizationsService,
   listEligiblePrijaveService,
   listRankingItemsService,
@@ -31,12 +32,22 @@ const upload = multer({ storage: multer.memoryStorage() });
 export const enrollmentContractUploadMiddleware = upload.single("file");
 
 export const listStudyProgramsHandler = async (
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const rows = await listStudyProgramsService();
+    const idFakultetaRaw = Array.isArray(req.query.idFakulteta)
+      ? req.query.idFakulteta[0]
+      : req.query.idFakulteta;
+    const idFakulteta =
+      typeof idFakultetaRaw === "string" && idFakultetaRaw.trim().length > 0
+        ? Number(idFakultetaRaw)
+        : undefined;
+
+    const rows = await listStudyProgramsService(
+      Number.isFinite(idFakulteta) ? idFakulteta : undefined,
+    );
     res.json(ok("Studijski programi su uspesno ucitani.", { rows }));
   } catch (error) {
     next(error);
@@ -53,8 +64,18 @@ export const listEligiblePrijaveHandler = async (
       ? req.query.skolskaGodina[0]
       : req.query.skolskaGodina;
     const skolskaGodina = typeof skolskaGodinaRaw === "string" ? skolskaGodinaRaw : undefined;
+    const idKonkursaRaw = Array.isArray(req.query.idKonkursa)
+      ? req.query.idKonkursa[0]
+      : req.query.idKonkursa;
+    const idKonkursa =
+      typeof idKonkursaRaw === "string" && idKonkursaRaw.trim().length > 0
+        ? Number(idKonkursaRaw)
+        : undefined;
 
-    const rows = await listEligiblePrijaveService(skolskaGodina);
+    const rows =
+      Number.isFinite(idKonkursa) && idKonkursa != null
+        ? await listEligiblePrijaveByKonkursService(idKonkursa, skolskaGodina)
+        : await listEligiblePrijaveService(skolskaGodina);
     res.json(ok("Odobrene prijave su uspesno ucitane.", { rows }));
   } catch (error) {
     next(error);
@@ -99,13 +120,21 @@ export const listRankingListsHandler = async (
     const skolskaGodinaRaw = Array.isArray(req.query.skolskaGodina)
       ? req.query.skolskaGodina[0]
       : req.query.skolskaGodina;
+    const idKonkursaRaw = Array.isArray(req.query.idKonkursa)
+      ? req.query.idKonkursa[0]
+      : req.query.idKonkursa;
 
     const idPrograma =
       typeof idProgramaRaw === "string" && idProgramaRaw.trim().length > 0
         ? Number(idProgramaRaw)
         : undefined;
+    const idKonkursa =
+      typeof idKonkursaRaw === "string" && idKonkursaRaw.trim().length > 0
+        ? Number(idKonkursaRaw)
+        : undefined;
 
     const rows = await listRankingListsService(
+      Number.isFinite(idKonkursa) ? idKonkursa : undefined,
       Number.isFinite(idPrograma) ? idPrograma : undefined,
       typeof skolskaGodinaRaw === "string" ? skolskaGodinaRaw : undefined,
     );
@@ -248,8 +277,18 @@ export const listPendingEnrollmentFinalizationsHandler = async (
       ? req.query.skolskaGodina[0]
       : req.query.skolskaGodina;
     const skolskaGodina = typeof skolskaGodinaRaw === "string" ? skolskaGodinaRaw : undefined;
+    const idKonkursaRaw = Array.isArray(req.query.idKonkursa)
+      ? req.query.idKonkursa[0]
+      : req.query.idKonkursa;
+    const idKonkursa =
+      typeof idKonkursaRaw === "string" && idKonkursaRaw.trim().length > 0
+        ? Number(idKonkursaRaw)
+        : undefined;
 
-    const rows = await listPendingEnrollmentFinalizationsService(skolskaGodina);
+    const rows = await listPendingEnrollmentFinalizationsService(
+      skolskaGodina,
+      Number.isFinite(idKonkursa) ? idKonkursa : undefined,
+    );
     res.json(ok("Kandidati za finalizaciju upisa su uspesno ucitani.", { rows }));
   } catch (error) {
     next(error);

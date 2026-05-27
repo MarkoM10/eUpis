@@ -3,6 +3,8 @@ import type { KonkursStatus } from "../../types/modules/konkurs";
 
 type KonkursRow = {
   ID_KONKURSA: number;
+  ID_FAKULTETA: number | null;
+  NAZIV_FAKULTETA: string | null;
   SKOLSKA_GODINA: string;
   KONKURSNI_ROK: string;
   DATUM_OD: Date;
@@ -12,6 +14,8 @@ type KonkursRow = {
 
 type KonkursWithStavkaRow = {
   ID_KONKURSA: number;
+  ID_FAKULTETA: number | null;
+  NAZIV_FAKULTETA: string | null;
   SKOLSKA_GODINA: string;
   KONKURSNI_ROK: string;
   DATUM_OD: Date;
@@ -50,6 +54,7 @@ export const getNextKonkursStavkaId = async (): Promise<number> => {
 
 export const insertKonkurs = async (input: {
   idKonkursa: number;
+  idFakulteta: number;
   skolskaGodina: string;
   godinaKonkursaLegacy: number;
   rokZaPrijavuLegacy: string;
@@ -68,6 +73,7 @@ export const insertKonkurs = async (input: {
         rok_za_prijavu,
         status_konkursa,
         id_konkursa,
+        id_fakulteta,
         skolska_godina,
         konkursni_rok,
         datum_od,
@@ -82,6 +88,7 @@ export const insertKonkurs = async (input: {
         TO_DATE(:rokZaPrijavuLegacy, 'YYYY-MM-DD'),
         :statusKonkursaLegacy,
         :idKonkursa,
+        :idFakulteta,
         :skolskaGodina,
         :konkursniRok,
         TO_DATE(:datumOd, 'YYYY-MM-DD'),
@@ -93,6 +100,7 @@ export const insertKonkurs = async (input: {
     `,
     {
       idKonkursa: input.idKonkursa,
+      idFakulteta: input.idFakulteta,
       skolskaGodina: input.skolskaGodina,
       godinaKonkursaLegacy: input.godinaKonkursaLegacy,
       rokZaPrijavuLegacy: input.rokZaPrijavuLegacy,
@@ -141,6 +149,8 @@ export const listKonkursiWithStavke = async (): Promise<KonkursWithStavkaRow[]> 
     `
       SELECT
         k.id_konkursa,
+        k.id_fakulteta,
+        f.naziv_fakulteta,
         k.skolska_godina,
         k.konkursni_rok,
         k.datum_od,
@@ -152,6 +162,7 @@ export const listKonkursiWithStavke = async (): Promise<KonkursWithStavkaRow[]> 
         sp.modul,
         s.broj_dostupnih_mesta
       FROM KonkursZaMasterStudije k
+      LEFT JOIN Fakultet f ON f.id_fakulteta = k.id_fakulteta
       LEFT JOIN KonkursStavka s ON s.id_konkursa = k.id_konkursa
       LEFT JOIN StudijskiProgram_VIEW sp ON sp.id_programa = s.id_programa
       ORDER BY k.created_at DESC, k.id_konkursa DESC, s.id_stavke_konkursa ASC
@@ -166,6 +177,8 @@ export const listActiveKonkursiWithStavke = async (): Promise<KonkursWithStavkaR
     `
       SELECT
         k.id_konkursa,
+        k.id_fakulteta,
+        f.naziv_fakulteta,
         k.skolska_godina,
         k.konkursni_rok,
         k.datum_od,
@@ -177,6 +190,7 @@ export const listActiveKonkursiWithStavke = async (): Promise<KonkursWithStavkaR
         sp.modul,
         s.broj_dostupnih_mesta
       FROM KonkursZaMasterStudije k
+      LEFT JOIN Fakultet f ON f.id_fakulteta = k.id_fakulteta
       JOIN KonkursStavka s ON s.id_konkursa = k.id_konkursa
       LEFT JOIN StudijskiProgram_VIEW sp ON sp.id_programa = s.id_programa
       WHERE k.status = 'Aktivan'
@@ -193,12 +207,15 @@ export const findKonkursById = async (idKonkursa: number): Promise<KonkursRow | 
     `
       SELECT
         k.id_konkursa,
+        k.id_fakulteta,
+        f.naziv_fakulteta,
         k.skolska_godina,
         k.konkursni_rok,
         k.datum_od,
         k.datum_do,
         k.status
       FROM KonkursZaMasterStudije k
+      LEFT JOIN Fakultet f ON f.id_fakulteta = k.id_fakulteta
       WHERE k.id_konkursa = :idKonkursa
       FETCH FIRST 1 ROWS ONLY
     `,
@@ -222,6 +239,26 @@ export const isProgramInKonkurs = async (
     {
       idKonkursa,
       idPrograma,
+    },
+  );
+
+  return (result.rows?.[0]?.CNT ?? 0) > 0;
+};
+
+export const isProgramInFakultet = async (
+  idPrograma: number,
+  idFakulteta: number,
+): Promise<boolean> => {
+  const result = await executeSql<ExistsRow>(
+    `
+      SELECT COUNT(*) AS cnt
+      FROM StudijskiProgramGlavno sp
+      WHERE sp.id_programa = :idPrograma
+        AND sp.id_fakulteta = :idFakulteta
+    `,
+    {
+      idPrograma,
+      idFakulteta,
     },
   );
 

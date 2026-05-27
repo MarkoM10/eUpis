@@ -5,8 +5,10 @@ import {
   updateKonkursStatusRequest,
 } from "../../services/konkursService";
 import { ApiClientError } from "../../services/api";
-import { listStudyProgramsRequest } from "../../services/upisService";
+import { listFakultetiRequest } from "../../services/metaService";
+import { listStudyProgramsRequest } from "../../services/studyProgramService";
 import type { Konkurs, KonkursStatus } from "../../types/models/konkurs";
+import type { FakultetOption } from "../../types/models/fakultet";
 import type { StudyProgramOption } from "../../types/models/upis";
 import { getCurrentYearString } from "../../utils/utils";
 
@@ -34,12 +36,14 @@ export default function AdminKonkursSection({
   onSuccess,
 }: AdminKonkursSectionProps): ReactElement {
   const [konkursi, setKonkursi] = useState<Konkurs[]>([]);
+  const [fakulteti, setFakulteti] = useState<FakultetOption[]>([]);
   const [studyPrograms, setStudyPrograms] = useState<StudyProgramOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [statusSavingId, setStatusSavingId] = useState<number | null>(null);
 
   const [skolskaGodina, setSkolskaGodina] = useState(getCurrentYearString());
+  const [selectedFakultetId, setSelectedFakultetId] = useState("");
   const [konkursniRok, setKonkursniRok] = useState("Septembar");
   const [datumOd, setDatumOd] = useState("");
   const [datumDo, setDatumDo] = useState("");
@@ -55,12 +59,16 @@ export default function AdminKonkursSection({
   const loadData = async (): Promise<void> => {
     setIsLoading(true);
     try {
-      const [konkursiResponse, programsResponse] = await Promise.all([
+      const [konkursiResponse, fakultetiResponse] = await Promise.all([
         listKonkursiRequest(token),
-        listStudyProgramsRequest(token),
+        listFakultetiRequest(token),
       ]);
       setKonkursi(konkursiResponse.data.rows);
-      setStudyPrograms(programsResponse.data.rows);
+      setFakulteti(fakultetiResponse.data.rows);
+
+      if (!selectedFakultetId && fakultetiResponse.data.rows.length > 0) {
+        setSelectedFakultetId(String(fakultetiResponse.data.rows[0].idFakulteta));
+      }
     } catch (error) {
       onRequestError(error);
     } finally {
@@ -68,10 +76,31 @@ export default function AdminKonkursSection({
     }
   };
 
+  const loadProgramsForFakultet = async (): Promise<void> => {
+    if (!selectedFakultetId) {
+      setStudyPrograms([]);
+      return;
+    }
+
+    try {
+      const response = await listStudyProgramsRequest(token, Number(selectedFakultetId));
+      setStudyPrograms(response.data.rows);
+    } catch (error) {
+      onRequestError(error);
+      setStudyPrograms([]);
+    }
+  };
+
   useEffect(() => {
     void loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  useEffect(() => {
+    setStavke([emptyStavka()]);
+    void loadProgramsForFakultet();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFakultetId, token]);
 
   const onStavkaChange = (index: number, patch: Partial<StavkaFormRow>): void => {
     setStavke((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
@@ -88,6 +117,17 @@ export default function AdminKonkursSection({
   const onCreate = async (): Promise<void> => {
     onClearFeedback();
 
+    if (!selectedFakultetId) {
+      onRequestError(
+        new ApiClientError({
+          success: false,
+          title: "Nedostaje fakultet",
+          message: "Potrebno je izabrati fakultet pre kreiranja konkursa.",
+        }),
+      );
+      return;
+    }
+
     if (datumOd && datumDo && datumOd > datumDo) {
       onRequestError(
         new ApiClientError({
@@ -103,6 +143,7 @@ export default function AdminKonkursSection({
 
     try {
       await createKonkursRequest(token, {
+        idFakulteta: Number(selectedFakultetId),
         skolskaGodina,
         konkursniRok,
         datumOd,
@@ -165,7 +206,19 @@ export default function AdminKonkursSection({
         </button>
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+        <select
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          value={selectedFakultetId}
+          onChange={(event) => setSelectedFakultetId(event.target.value)}
+        >
+          <option value="">Izaberite fakultet</option>
+          {fakulteti.map((fakultet) => (
+            <option key={fakultet.idFakulteta} value={String(fakultet.idFakulteta)}>
+              {fakultet.nazivFakulteta}
+            </option>
+          ))}
+        </select>
         <input
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
           placeholder="Skolska godina"
@@ -209,8 +262,11 @@ export default function AdminKonkursSection({
               className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
               value={stavka.idPrograma}
               onChange={(event) => onStavkaChange(index, { idPrograma: event.target.value })}
+              disabled={!selectedFakultetId}
             >
-              <option value="">Izaberite program i modul</option>
+              <option value="">
+                {selectedFakultetId ? "Izaberite program i modul" : "Prvo izaberite fakultet"}
+              </option>
               {studyPrograms.map((program) => (
                 <option key={program.idPrograma} value={String(program.idPrograma)}>
                   {program.nazivPrograma} | {program.modul}
@@ -261,6 +317,7 @@ export default function AdminKonkursSection({
           <thead>
             <tr className="bg-slate-100 text-left text-slate-700">
               <th className="border border-slate-300 px-3 py-2">Konkurs</th>
+              <th className="border border-slate-300 px-3 py-2">Fakultet</th>
               <th className="border border-slate-300 px-3 py-2">Period</th>
               <th className="border border-slate-300 px-3 py-2">Status</th>
               <th className="border border-slate-300 px-3 py-2">Programi/moduli</th>
@@ -271,7 +328,7 @@ export default function AdminKonkursSection({
             {konkursi.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="border border-slate-300 px-3 py-4 text-center text-slate-500"
                 >
                   Nema kreiranih konkursa.
@@ -282,6 +339,9 @@ export default function AdminKonkursSection({
                 <tr key={konkurs.idKonkursa} className="odd:bg-white even:bg-slate-50">
                   <td className="border border-slate-300 px-3 py-2">
                     #{konkurs.idKonkursa} | {konkurs.skolskaGodina} | {konkurs.konkursniRok}
+                  </td>
+                  <td className="border border-slate-300 px-3 py-2">
+                    {konkurs.nazivFakulteta ?? "-"}
                   </td>
                   <td className="border border-slate-300 px-3 py-2">
                     {konkurs.datumOd.slice(0, 10)} - {konkurs.datumDo.slice(0, 10)}

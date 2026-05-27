@@ -4,6 +4,7 @@ import { OracleMessageCard } from "../../components/feedback/OracleMessageCard";
 import { useAppSelector } from "../../redux/hooks";
 import { toApiClientError } from "../../services/api";
 import AdminKonkursSection from "./AdminKonkursSection";
+import KonkursWorkflowSection from "./KonkursWorkflowSection";
 
 export default function KonkursPage(): ReactElement {
   const token = useAppSelector((state) => state.auth.token);
@@ -51,12 +52,20 @@ export default function KonkursPage(): ReactElement {
         </header>
 
         {token ? (
-          <AdminKonkursSection
-            token={token}
-            onClearFeedback={clearFeedback}
-            onRequestError={setRequestError}
-            onSuccess={setSuccessMessage}
-          />
+          <>
+            <AdminKonkursSection
+              token={token}
+              onClearFeedback={clearFeedback}
+              onRequestError={setRequestError}
+              onSuccess={setSuccessMessage}
+            />
+            <KonkursWorkflowSection
+              token={token}
+              onClearFeedback={clearFeedback}
+              onRequestError={setRequestError}
+              onSuccess={setSuccessMessage}
+            />
+          </>
         ) : null}
 
         {successMessage ? (

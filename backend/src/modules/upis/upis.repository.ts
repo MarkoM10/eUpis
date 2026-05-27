@@ -14,6 +14,7 @@ import type {
 
 type ProgramRow = {
   ID_PROGRAMA: number;
+  ID_FAKULTETA: number | null;
   NAZIV_PROGRAMA: string;
   MODUL: string;
   BROJ_DOSTUPNIH_MESTA: number | null;
@@ -23,6 +24,7 @@ type EligiblePrijavaDbRow = {
   BROJ_PRIJAVE: number;
   SKOLSKA_GODINA: string;
   DATUM_PRIJAVE: Date | null;
+  ID_KONKURSA: number | null;
   ID_PROGRAMA: number | null;
   NAZIV_PROGRAMA: string | null;
   MODUL: string | null;
@@ -36,6 +38,7 @@ type EligiblePrijavaDbRow = {
 
 type RankingListRow = {
   ID_RANG_LISTE: number;
+  ID_KONKURSA: number | null;
   ID_PROGRAMA: number | null;
   NAZIV_PROGRAMA: string | null;
   MODUL: string | null;
@@ -79,6 +82,7 @@ type PendingEnrollmentFinalizationDbRow = {
   ID_UPISA: number;
   BROJ_PRIJAVE: number;
   SKOLSKA_GODINA: string;
+  ID_KONKURSA: number | null;
   IME_PREZIME: string | null;
   STUDIJSKI_PROGRAM: string | null;
   BROJ_POENA: number | null;
@@ -93,6 +97,7 @@ type EnrollmentFinalizationSummaryRow = {
 
 const mapProgram = (row: ProgramRow): StudyProgramOption => ({
   idPrograma: row.ID_PROGRAMA,
+  idFakulteta: row.ID_FAKULTETA,
   nazivPrograma: row.NAZIV_PROGRAMA,
   modul: row.MODUL,
   brojDostupnihMesta: row.BROJ_DOSTUPNIH_MESTA,
@@ -102,6 +107,7 @@ const mapEligiblePrijava = (row: EligiblePrijavaDbRow): EligiblePrijavaRow => ({
   brojPrijave: row.BROJ_PRIJAVE,
   skolskaGodina: row.SKOLSKA_GODINA,
   datumPrijave: row.DATUM_PRIJAVE ? row.DATUM_PRIJAVE.toISOString() : null,
+  idKonkursa: row.ID_KONKURSA,
   idPrograma: row.ID_PROGRAMA,
   nazivPrograma: row.NAZIV_PROGRAMA,
   modul: row.MODUL,
@@ -115,6 +121,7 @@ const mapEligiblePrijava = (row: EligiblePrijavaDbRow): EligiblePrijavaRow => ({
 
 const mapRankingList = (row: RankingListRow): RankingListSummary => ({
   idRangListe: row.ID_RANG_LISTE,
+  idKonkursa: row.ID_KONKURSA,
   idPrograma: row.ID_PROGRAMA,
   nazivPrograma: row.NAZIV_PROGRAMA,
   modul: row.MODUL,
@@ -155,6 +162,7 @@ const mapPendingEnrollmentFinalization = (
   idUpisa: row.ID_UPISA,
   brojPrijave: row.BROJ_PRIJAVE,
   skolskaGodina: row.SKOLSKA_GODINA,
+  idKonkursa: row.ID_KONKURSA,
   imePrezime: row.IME_PREZIME,
   studijskiProgram: row.STUDIJSKI_PROGRAM,
   brojPoena: row.BROJ_POENA,
@@ -163,17 +171,23 @@ const mapPendingEnrollmentFinalization = (
   signedContractUploadedAt: row.UGOVOR_UPLOADED_AT ? row.UGOVOR_UPLOADED_AT.toISOString() : null,
 });
 
-export const listStudyPrograms = async (): Promise<StudyProgramOption[]> => {
+export const listStudyPrograms = async (idFakulteta?: number): Promise<StudyProgramOption[]> => {
   const result = await executeSql<ProgramRow>(
     `
       SELECT
         sp.id_programa,
+        spg.id_fakulteta,
         sp.naziv_programa,
         sp.modul,
         sp.broj_dostupnih_mesta
       FROM StudijskiProgram_VIEW sp
+      LEFT JOIN StudijskiProgramGlavno spg ON spg.id_programa = sp.id_programa
+      WHERE (:idFakulteta IS NULL OR spg.id_fakulteta = :idFakulteta)
       ORDER BY sp.naziv_programa, sp.modul
     `,
+    {
+      idFakulteta: idFakulteta ?? null,
+    },
   );
 
   return (result.rows ?? []).map(mapProgram);
@@ -181,6 +195,7 @@ export const listStudyPrograms = async (): Promise<StudyProgramOption[]> => {
 
 export const listEligiblePrijave = async (
   skolskaGodina?: string,
+  idKonkursa?: number,
 ): Promise<EligiblePrijavaRow[]> => {
   const result = await executeSql<EligiblePrijavaDbRow>(
     `
@@ -188,6 +203,7 @@ export const listEligiblePrijave = async (
         p.broj_prijave,
         p.skolska_godina,
         p.datum_prijave,
+        p.id_konkursa,
         p.id_programa,
         sp.naziv_programa,
         sp.modul,
@@ -208,10 +224,12 @@ export const listEligiblePrijave = async (
       WHERE p.status_prijave = 'Odobrena'
         AND p.id_programa IS NOT NULL
         AND (:skolskaGodina IS NULL OR p.skolska_godina = :skolskaGodina)
+        AND (:idKonkursa IS NULL OR p.id_konkursa = :idKonkursa)
       ORDER BY p.datum_prijave DESC NULLS LAST, p.broj_prijave DESC
     `,
     {
       skolskaGodina: skolskaGodina ?? null,
+      idKonkursa: idKonkursa ?? null,
     },
   );
 
@@ -228,6 +246,7 @@ export const findPrijavaForExam = async (
         p.broj_prijave,
         p.skolska_godina,
         p.datum_prijave,
+        p.id_konkursa,
         p.id_programa,
         sp.naziv_programa,
         sp.modul,
@@ -254,11 +273,13 @@ export const findPrijavaForExam = async (
 export const findRankingListByProgramAndYear = async (
   idPrograma: number,
   skolskaGodina: string,
+  idKonkursa?: number,
 ): Promise<RankingListSummary | null> => {
   const result = await executeSql<RankingListRow>(
     `
       SELECT
         kr.id_rang_liste,
+        kr.id_konkursa,
         kr.id_programa,
         sp.naziv_programa,
         sp.modul,
@@ -270,10 +291,11 @@ export const findRankingListByProgramAndYear = async (
       LEFT JOIN StudijskiProgram_VIEW sp ON sp.id_programa = kr.id_programa
       WHERE kr.id_programa = :idPrograma
         AND kr.skolska_godina = :skolskaGodina
+        AND (:idKonkursa IS NULL OR kr.id_konkursa = :idKonkursa)
       ORDER BY kr.id_rang_liste DESC
       FETCH FIRST 1 ROWS ONLY
     `,
-    { idPrograma, skolskaGodina },
+    { idPrograma, skolskaGodina, idKonkursa: idKonkursa ?? null },
   );
 
   const row = result.rows?.[0];
@@ -281,6 +303,7 @@ export const findRankingListByProgramAndYear = async (
 };
 
 export const createRankingList = async (
+  idKonkursa: number | null,
   idPrograma: number,
   studijskiProgram: string,
   skolskaGodina: string,
@@ -295,6 +318,7 @@ export const createRankingList = async (
     `
       INSERT INTO KonacnaRangLista (
         id_rang_liste,
+        id_konkursa,
         id_programa,
         studijski_program,
         broj_mesta,
@@ -303,6 +327,7 @@ export const createRankingList = async (
       )
       VALUES (
         :idRangListe,
+        :idKonkursa,
         :idPrograma,
         :studijskiProgram,
         :brojMesta,
@@ -312,6 +337,7 @@ export const createRankingList = async (
     `,
     {
       idRangListe,
+      idKonkursa,
       idPrograma,
       studijskiProgram,
       brojMesta,
@@ -323,6 +349,7 @@ export const createRankingList = async (
 };
 
 export const listRankingLists = async (
+  idKonkursa?: number,
   idPrograma?: number,
   skolskaGodina?: string,
 ): Promise<RankingListSummary[]> => {
@@ -330,6 +357,7 @@ export const listRankingLists = async (
     `
       SELECT
         kr.id_rang_liste,
+        kr.id_konkursa,
         kr.id_programa,
         sp.naziv_programa,
         sp.modul,
@@ -339,11 +367,13 @@ export const listRankingLists = async (
         kr.ukupno_kandidata
       FROM KonacnaRangLista kr
       LEFT JOIN StudijskiProgram_VIEW sp ON sp.id_programa = kr.id_programa
-      WHERE (:idPrograma IS NULL OR kr.id_programa = :idPrograma)
+      WHERE (:idKonkursa IS NULL OR kr.id_konkursa = :idKonkursa)
+        AND (:idPrograma IS NULL OR kr.id_programa = :idPrograma)
         AND (:skolskaGodina IS NULL OR kr.skolska_godina = :skolskaGodina)
       ORDER BY kr.id_rang_liste DESC
     `,
     {
+      idKonkursa: idKonkursa ?? null,
       idPrograma: idPrograma ?? null,
       skolskaGodina: skolskaGodina ?? null,
     },
@@ -359,6 +389,7 @@ export const getRankingListById = async (
     `
       SELECT
         kr.id_rang_liste,
+        kr.id_konkursa,
         kr.id_programa,
         sp.naziv_programa,
         sp.modul,
@@ -737,6 +768,7 @@ export const getEnrollmentContractDownload = async (
 
 export const listPendingEnrollmentFinalizations = async (
   skolskaGodina?: string,
+  idKonkursa?: number,
 ): Promise<PendingEnrollmentFinalizationRow[]> => {
   const result = await executeSql<PendingEnrollmentFinalizationDbRow>(
     `
@@ -744,6 +776,7 @@ export const listPendingEnrollmentFinalizations = async (
         uf.id_upisa,
         uf.broj_prijave,
         uf.skolska_godina,
+        p.id_konkursa,
         p.ime_prezime,
         s.studijski_program,
         s.broj_poena,
@@ -762,10 +795,12 @@ export const listPendingEnrollmentFinalizations = async (
         )
       WHERE uf.status_upisa = 'UgovorOtpremljen'
         AND (:skolskaGodina IS NULL OR uf.skolska_godina = :skolskaGodina)
+        AND (:idKonkursa IS NULL OR p.id_konkursa = :idKonkursa)
       ORDER BY uf.ugovor_uploaded_at DESC NULLS LAST, uf.id_upisa DESC
     `,
     {
       skolskaGodina: skolskaGodina ?? null,
+      idKonkursa: idKonkursa ?? null,
     },
   );
 

@@ -11,6 +11,8 @@ export interface KonkursStavka {
 
 export interface Konkurs {
   idKonkursa: number;
+  idFakulteta: number | null;
+  nazivFakulteta: string | null;
   skolskaGodina: string;
   konkursniRok: string;
   datumOd: string;
@@ -21,6 +23,8 @@ export interface Konkurs {
 
 export interface ActiveKonkursOption {
   idKonkursa: number;
+  idFakulteta: number | null;
+  nazivFakulteta: string | null;
   skolskaGodina: string;
   konkursniRok: string;
   datumOd: string;
