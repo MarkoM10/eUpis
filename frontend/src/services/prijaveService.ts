@@ -49,6 +49,21 @@ const getFileNameFromDisposition = (contentDisposition?: string): string | null 
 const extensionFromMimeType = (mimeType: string): string => {
   const normalized = mimeType.toLowerCase();
 
+  if (normalized.includes("image/jpeg") || normalized.includes("image/jpg")) {
+    return ".jpg";
+  }
+  if (normalized.includes("image/png")) {
+    return ".png";
+  }
+  if (normalized.includes("image/webp")) {
+    return ".webp";
+  }
+  if (normalized.includes("image/gif")) {
+    return ".gif";
+  }
+  if (normalized.includes("image/bmp")) {
+    return ".bmp";
+  }
   if (normalized.includes("pdf")) {
     return ".pdf";
   }
@@ -58,8 +73,17 @@ const extensionFromMimeType = (mimeType: string): string => {
   if (normalized.includes("msword")) {
     return ".doc";
   }
+  if (normalized.includes("spreadsheetml")) {
+    return ".xlsx";
+  }
+  if (normalized.includes("ms-excel")) {
+    return ".xls";
+  }
   if (normalized.includes("text/plain")) {
     return ".txt";
+  }
+  if (normalized.includes("zip")) {
+    return ".zip";
   }
 
   return ".bin";

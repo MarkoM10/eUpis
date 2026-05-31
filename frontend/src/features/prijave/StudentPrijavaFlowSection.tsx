@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactElement } from "react";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { updateAuthSession } from "../../redux/slices/authSlice";
 import { loadFakulteti } from "../../redux/slices/prijaveSlice";
+import { ApiClientError } from "../../services/api";
 import { sessionRequest } from "../../services/authService";
 import { listActiveKonkursiRequest } from "../../services/konkursService";
 import {
@@ -161,6 +162,10 @@ const areRequiredDocumentsAttached = (
   const hasDiploma = documents.diploma.hasFile || Boolean(diplomaForm.file);
   const hasUverenje = documents.uverenje.hasFile || Boolean(uverenjeForm.file);
   return hasDiploma && hasUverenje;
+};
+
+const hasRequiredUploadedDocuments = (documents: PrijavaDocumentsRecord): boolean => {
+  return documents.diploma.hasFile && documents.uverenje.hasFile;
 };
 
 const buildExistingPrijavaFromPayload = (
@@ -371,6 +376,25 @@ export default function StudentPrijavaFlowSection({
   };
 
   const finalizeStudentSubmission = async (key: ActivePrijavaKey): Promise<void> => {
+    if (!token) {
+      throw new Error("Missing token");
+    }
+
+    const documentsResponse = await getPrijavaDocumentsRequest(
+      token,
+      key.brojPrijave,
+      key.skolskaGodina,
+    );
+
+    if (!hasRequiredUploadedDocuments(documentsResponse.data)) {
+      throw new ApiClientError({
+        success: false,
+        title: "Dokumentacija nije kompletna",
+        message:
+          "Prijava ne moze biti poslata bez oba dokumenta. Potrebno je da otpremite i Diplomu i Uverenje.",
+      });
+    }
+
     setStudentDocumentKey(key);
     dispatch(
       updateAuthSession({
@@ -379,7 +403,9 @@ export default function StudentPrijavaFlowSection({
         hasApplied: true,
       }),
     );
-    await loadDocuments(key);
+    setDocuments(documentsResponse.data);
+    setDiplomaForm(toDiplomaForm(documentsResponse.data.diploma));
+    setUverenjeForm(toUverenjeForm(documentsResponse.data.uverenje));
     onSetSuccessMessage("Prijava i dokumentacija su uspesno poslati.");
   };
 
