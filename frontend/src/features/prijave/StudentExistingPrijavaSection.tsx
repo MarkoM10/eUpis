@@ -52,7 +52,7 @@ export default function StudentExistingPrijavaSection({
       />
 
       {!areStudentDocumentsAttached ? (
-        <section className="rounded-2xl border border-slate-300 bg-white p-4">
+        <section className="rounded-2xl border border-slate-300 bg-white p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Dopuna dokumentacije</h2>
@@ -76,42 +76,42 @@ export default function StudentExistingPrijavaSection({
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <input
                   type="date"
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={diplomaForm.datumIzdavanja}
                   onChange={(event) => onDiplomaFormChange("datumIzdavanja", event.target.value)}
                 />
                 <input
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Broj ESPB"
                   value={diplomaForm.brojEspb}
                   onChange={(event) => onDiplomaFormChange("brojEspb", event.target.value)}
                 />
                 <input
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Steceno zvanje"
                   value={diplomaForm.stecenoZvanje}
                   onChange={(event) => onDiplomaFormChange("stecenoZvanje", event.target.value)}
                 />
                 <input
                   type="date"
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={diplomaForm.datumDiplomiranja}
                   onChange={(event) => onDiplomaFormChange("datumDiplomiranja", event.target.value)}
                 />
                 <input
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Godina upisa"
                   value={diplomaForm.godinaUpisa}
                   onChange={(event) => onDiplomaFormChange("godinaUpisa", event.target.value)}
                 />
                 <input
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Prosecna ocena"
                   value={diplomaForm.prosecnaOcena}
                   onChange={(event) => onDiplomaFormChange("prosecnaOcena", event.target.value)}
                 />
                 <select
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={diplomaForm.idFakulteta}
                   onChange={(event) => onDiplomaFormChange("idFakulteta", event.target.value)}
                 >
@@ -124,7 +124,7 @@ export default function StudentExistingPrijavaSection({
                 </select>
                 <input
                   type="file"
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm md:col-span-2"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm md:col-span-2 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-blue-700"
                   onChange={(event) => onDiplomaFormChange("file", event.target.files?.[0] ?? null)}
                 />
               </div>
@@ -146,12 +146,12 @@ export default function StudentExistingPrijavaSection({
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <input
                   type="date"
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={uverenjeForm.datumIzdavanja}
                   onChange={(event) => onUverenjeFormChange("datumIzdavanja", event.target.value)}
                 />
                 <select
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={uverenjeForm.idFakulteta}
                   onChange={(event) => onUverenjeFormChange("idFakulteta", event.target.value)}
                 >
@@ -163,20 +163,20 @@ export default function StudentExistingPrijavaSection({
                   ))}
                 </select>
                 <input
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Ukupno ESPB"
                   value={uverenjeForm.ukupnoEspb}
                   onChange={(event) => onUverenjeFormChange("ukupnoEspb", event.target.value)}
                 />
                 <input
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Prosecna ocena"
                   value={uverenjeForm.prosecnaOcena}
                   onChange={(event) => onUverenjeFormChange("prosecnaOcena", event.target.value)}
                 />
                 <input
                   type="file"
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm md:col-span-2"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm md:col-span-2 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-blue-700"
                   onChange={(event) =>
                     onUverenjeFormChange("file", event.target.files?.[0] ?? null)
                   }
@@ -197,7 +197,7 @@ export default function StudentExistingPrijavaSection({
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"
-              className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              className="rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
               onClick={onSubmit}
               disabled={isSubmitting}
             >

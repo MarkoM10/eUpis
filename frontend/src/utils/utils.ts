@@ -68,8 +68,12 @@ export const triggerFileDownload = (blob: Blob, fileName: string): void => {
   anchor.download = fileName;
   document.body.append(anchor);
   anchor.click();
-  anchor.remove();
-  window.URL.revokeObjectURL(url);
+
+  // Keep URL alive briefly so browsers can finish reading Blob content.
+  window.setTimeout(() => {
+    anchor.remove();
+    window.URL.revokeObjectURL(url);
+  }, 1500);
 };
 
 export const getPrijavaRowKey = (brojPrijave: number, skolskaGodina: string): string => {

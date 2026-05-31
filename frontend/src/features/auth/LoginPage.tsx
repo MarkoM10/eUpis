@@ -10,7 +10,7 @@ export default function LoginPage(): ReactElement {
   const navigate = useNavigate();
 
   const [mode, setMode] = useState<"login" | "register">("login");
-  const [username, setUsername] = useState("marko");
+  const [username, setUsername] = useState("admin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("marko123");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -49,25 +49,25 @@ export default function LoginPage(): ReactElement {
     <main className="min-h-screen bg-slate-100 p-6 text-slate-900 flex items-center">
       <div className="mx-auto flex max-w-5xl items-center gap-6">
         <div className="mx-auto grid max-w-5xl overflow-hidden rounded-3xl border border-slate-300 bg-white shadow-xl lg:grid-cols-[1.2fr_1fr]">
-          <section className="bg-teal-800 p-10 text-white">
-            <span className="rounded-full bg-teal-200 px-3 py-1 text-xs font-bold tracking-wide text-teal-900">
+          <section className="bg-slate-700 p-10 text-white">
+            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold tracking-wide text-blue-700">
               eUPIS portal
             </span>
             <h1 className="mt-5 text-4xl font-bold leading-tight">eUpis Master studije</h1>
-            <p className="mt-3 text-teal-100">
+            <p className="mt-3 text-slate-200">
               Sistem za upravljanje procesom upisa na master studije.
             </p>
             <ul className="mt-6 space-y-2 text-sm">
-              <li className="rounded-lg bg-white/90 p-2 text-slate-900">
+              <li className="rounded-lg border border-slate-700 bg-slate-800 p-2 text-slate-100">
                 1. Napravi nalog i prijavi se na sistem
               </li>
-              <li className="rounded-lg bg-white/90 p-2 text-slate-900">
+              <li className="rounded-lg border border-slate-700 bg-slate-800 p-2 text-slate-100">
                 2. Odaberi studijski program i kreiraj prijavu
               </li>
-              <li className="rounded-lg bg-white/90 p-2 text-slate-900">
+              <li className="rounded-lg border border-slate-700 bg-slate-800 p-2 text-slate-100">
                 3. Prati status svoje prijave i sačekaj rezultate konkursa
               </li>
-              <li className="rounded-lg bg-white/90 p-2 text-slate-900">
+              <li className="rounded-lg border border-slate-700 bg-slate-800 p-2 text-slate-100">
                 4. Shodno rezultatima rangiraj se na konacnoj rang listi
               </li>
             </ul>
@@ -81,7 +81,9 @@ export default function LoginPage(): ReactElement {
               <button
                 type="button"
                 className={`rounded-md px-3 py-2 text-sm font-semibold ${
-                  mode === "login" ? "bg-white shadow" : "text-slate-600"
+                  mode === "login"
+                    ? "border border-blue-300 bg-blue-50 text-blue-700"
+                    : "text-slate-600 hover:bg-slate-200"
                 }`}
                 onClick={() => {
                   setMode("login");
@@ -93,7 +95,9 @@ export default function LoginPage(): ReactElement {
               <button
                 type="button"
                 className={`rounded-md px-3 py-2 text-sm font-semibold ${
-                  mode === "register" ? "bg-white shadow" : "text-slate-600"
+                  mode === "register"
+                    ? "border border-blue-300 bg-blue-50 text-blue-700"
+                    : "text-slate-600 hover:bg-slate-200"
                 }`}
                 onClick={() => {
                   setMode("register");
@@ -108,7 +112,7 @@ export default function LoginPage(): ReactElement {
               <label className="block text-sm font-medium">
                 Korisnicko ime
                 <input
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
                 />
@@ -118,7 +122,7 @@ export default function LoginPage(): ReactElement {
                 <label className="block text-sm font-medium">
                   Email
                   <input
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                   />
@@ -129,7 +133,7 @@ export default function LoginPage(): ReactElement {
                 Lozinka
                 <input
                   type="password"
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                 />
@@ -140,7 +144,7 @@ export default function LoginPage(): ReactElement {
                   Potvrdite lozinku
                   <input
                     type="password"
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
                   />
@@ -155,7 +159,7 @@ export default function LoginPage(): ReactElement {
 
               <button
                 type="submit"
-                className="w-full rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white disabled:opacity-60"
+                className="w-full rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
                 disabled={isSubmitting}
               >
                 {isSubmitting

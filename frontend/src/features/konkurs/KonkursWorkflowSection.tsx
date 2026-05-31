@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactElement } from "react";
 import {
   confirmKonkursEnrollmentFinalizationRequest,
+  downloadKonkursEnrollmentContractRequest,
   generateKonkursFinalRankingRequest,
   listKonkursEligiblePrijaveRequest,
   listKonkursPendingFinalizationsRequest,
@@ -10,6 +11,7 @@ import {
 import { ApiClientError } from "../../services/api";
 import type { Konkurs } from "../../types/models/konkurs";
 import type { EligiblePrijavaRow, PendingEnrollmentFinalizationRow } from "../../types/models/upis";
+import { triggerFileDownload } from "../../utils/utils";
 
 interface KonkursWorkflowSectionProps {
   token: string;
@@ -33,6 +35,7 @@ export default function KonkursWorkflowSection({
   const [scoreByPrijava, setScoreByPrijava] = useState<Record<string, string>>({});
   const [savingScoreKey, setSavingScoreKey] = useState<string | null>(null);
   const [confirmingFinalizationKey, setConfirmingFinalizationKey] = useState<string | null>(null);
+  const [downloadingContractKey, setDownloadingContractKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -200,6 +203,26 @@ export default function KonkursWorkflowSection({
     }
   };
 
+  const onDownloadContract = async (row: PendingEnrollmentFinalizationRow): Promise<void> => {
+    const key = `${row.brojPrijave}|${row.skolskaGodina}`;
+    setDownloadingContractKey(key);
+    onClearFeedback();
+
+    try {
+      const result = await downloadKonkursEnrollmentContractRequest(
+        token,
+        row.brojPrijave,
+        row.skolskaGodina,
+      );
+      triggerFileDownload(result.blob, result.fileName);
+      onSuccess("Ugovor je uspesno preuzet.");
+    } catch (error) {
+      onRequestError(error);
+    } finally {
+      setDownloadingContractKey(null);
+    }
+  };
+
   useEffect(() => {
     void loadKonkursi().catch(onRequestError);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -309,7 +332,7 @@ export default function KonkursWorkflowSection({
   };
 
   return (
-    <section className="rounded-2xl border border-slate-300 bg-white p-4">
+    <section className="rounded-2xl border border-slate-300 bg-white p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Konkursni workflow</h2>
@@ -319,7 +342,7 @@ export default function KonkursWorkflowSection({
         </div>
         <button
           type="button"
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-100 disabled:opacity-60"
           onClick={() => {
             void loadWorkflow();
           }}
@@ -340,7 +363,7 @@ export default function KonkursWorkflowSection({
             key={item.step}
             className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
               wizardStep === item.step
-                ? "border-teal-700 bg-teal-700 text-white"
+                ? "border-blue-300 bg-blue-50 text-blue-700"
                 : "border-slate-300 bg-slate-50 text-slate-700"
             }`}
           >
@@ -357,7 +380,7 @@ export default function KonkursWorkflowSection({
             </h3>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               <select
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={selectedKonkursId}
                 onChange={(event) => setSelectedKonkursId(event.target.value)}
               >
@@ -370,7 +393,7 @@ export default function KonkursWorkflowSection({
               </select>
 
               <select
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={selectedProgramId}
                 onChange={(event) => setSelectedProgramId(event.target.value)}
                 disabled={!selectedKonkurs}
@@ -396,24 +419,33 @@ export default function KonkursWorkflowSection({
               Korak 2: Odobrene prijave i unos bodova
             </h3>
             <div className="overflow-auto rounded-xl border border-slate-200">
-              <table className="min-w-full border-collapse text-sm">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-100 text-left text-slate-700">
-                    <th className="border border-slate-300 px-3 py-2">Prijava</th>
-                    <th className="border border-slate-300 px-3 py-2">Kandidat</th>
-                    <th className="border border-slate-300 px-3 py-2">Program</th>
-                    <th className="border border-slate-300 px-3 py-2">Poeni</th>
-                    <th className="border border-slate-300 px-3 py-2">Status</th>
-                    <th className="border border-slate-300 px-3 py-2">Akcija</th>
+                  <tr>
+                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                      Prijava
+                    </th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                      Kandidat
+                    </th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                      Program
+                    </th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                      Poeni
+                    </th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                      Status
+                    </th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                      Akcija
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {selectedProgramRows.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan={6}
-                        className="border border-slate-300 px-3 py-4 text-center text-slate-500"
-                      >
+                      <td colSpan={6} className="px-4 py-4 text-center text-slate-500">
                         Nema odobrenih prijava za izabrani program.
                       </td>
                     </tr>
@@ -421,18 +453,16 @@ export default function KonkursWorkflowSection({
                     selectedProgramRows.map((row) => (
                       <tr
                         key={`${row.brojPrijave}-${row.skolskaGodina}`}
-                        className="odd:bg-white even:bg-slate-50"
+                        className="border-b border-slate-200 odd:bg-white even:bg-slate-50 hover:bg-slate-50"
                       >
-                        <td className="border border-slate-300 px-3 py-2">{row.brojPrijave}</td>
-                        <td className="border border-slate-300 px-3 py-2">
-                          {row.imePrezime ?? "-"}
-                        </td>
-                        <td className="border border-slate-300 px-3 py-2">
+                        <td className="px-4 py-3 text-slate-700">{row.brojPrijave}</td>
+                        <td className="px-4 py-3 text-slate-700">{row.imePrezime ?? "-"}</td>
+                        <td className="px-4 py-3 text-slate-700">
                           {(row.nazivPrograma ?? "-") + " | " + (row.modul ?? "-")}
                         </td>
-                        <td className="border border-slate-300 px-3 py-2">
+                        <td className="px-4 py-3 text-slate-700">
                           <input
-                            className="w-24 rounded border border-slate-300 px-2 py-1"
+                            className="w-24 rounded-lg border border-slate-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             value={scoreByPrijava[`${row.brojPrijave}|${row.skolskaGodina}`] ?? ""}
                             onChange={(event) => {
                               const key = `${row.brojPrijave}|${row.skolskaGodina}`;
@@ -445,13 +475,11 @@ export default function KonkursWorkflowSection({
                             disabled={row.examPoints != null}
                           />
                         </td>
-                        <td className="border border-slate-300 px-3 py-2">
-                          {row.rankingStatus ?? "-"}
-                        </td>
-                        <td className="border border-slate-300 px-3 py-2">
+                        <td className="px-4 py-3 text-slate-700">{row.rankingStatus ?? "-"}</td>
+                        <td className="px-4 py-3">
                           <button
                             type="button"
-                            className="rounded bg-teal-700 px-2 py-1 text-xs font-semibold text-white disabled:opacity-60"
+                            className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
                             onClick={() => {
                               void onSaveScore(row);
                             }}
@@ -484,7 +512,7 @@ export default function KonkursWorkflowSection({
               </h3>
               <button
                 type="button"
-                className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                className="rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
                 onClick={() => {
                   void onGenerateFinalRanking();
                 }}
@@ -497,23 +525,30 @@ export default function KonkursWorkflowSection({
             </div>
 
             <div className="overflow-auto rounded-xl border border-slate-200">
-              <table className="min-w-full border-collapse text-sm">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-100 text-left text-slate-700">
-                    <th className="border border-slate-300 px-3 py-2">Mesto</th>
-                    <th className="border border-slate-300 px-3 py-2">Prijava</th>
-                    <th className="border border-slate-300 px-3 py-2">Kandidat</th>
-                    <th className="border border-slate-300 px-3 py-2">Poeni</th>
-                    <th className="border border-slate-300 px-3 py-2">Status konacne liste</th>
+                  <tr>
+                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                      Mesto
+                    </th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                      Prijava
+                    </th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                      Kandidat
+                    </th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                      Poeni
+                    </th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                      Status konacne liste
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {finalRankingRows.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan={5}
-                        className="border border-slate-300 px-3 py-4 text-center text-slate-500"
-                      >
+                      <td colSpan={5} className="px-4 py-4 text-center text-slate-500">
                         Konacna rang lista jos nije dostupna za prikaz.
                       </td>
                     </tr>
@@ -521,13 +556,13 @@ export default function KonkursWorkflowSection({
                     finalRankingRows.map((row) => (
                       <tr
                         key={`${row.brojPrijave}-${row.rangMesto}`}
-                        className="odd:bg-white even:bg-slate-50"
+                        className="border-b border-slate-200 odd:bg-white even:bg-slate-50 hover:bg-slate-50"
                       >
-                        <td className="border border-slate-300 px-3 py-2">{row.rangMesto}</td>
-                        <td className="border border-slate-300 px-3 py-2">{row.brojPrijave}</td>
-                        <td className="border border-slate-300 px-3 py-2">{row.imePrezime}</td>
-                        <td className="border border-slate-300 px-3 py-2">{row.brojPoena}</td>
-                        <td className="border border-slate-300 px-3 py-2">{row.status}</td>
+                        <td className="px-4 py-3 text-slate-700">{row.rangMesto}</td>
+                        <td className="px-4 py-3 text-slate-700">{row.brojPrijave}</td>
+                        <td className="px-4 py-3 text-slate-700">{row.imePrezime}</td>
+                        <td className="px-4 py-3 text-slate-700">{row.brojPoena}</td>
+                        <td className="px-4 py-3 text-slate-700">{row.status}</td>
                       </tr>
                     ))
                   )}
@@ -541,49 +576,71 @@ export default function KonkursWorkflowSection({
           <div className="space-y-3">
             <h3 className="text-base font-semibold text-slate-900">Korak 4: Finalizacija upisa</h3>
             <div className="overflow-auto rounded-xl border border-slate-200">
-              <table className="min-w-full border-collapse text-sm">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-100 text-left text-slate-700">
-                    <th className="border border-slate-300 px-3 py-2">Prijava</th>
-                    <th className="border border-slate-300 px-3 py-2">Kandidat</th>
-                    <th className="border border-slate-300 px-3 py-2">Program</th>
-                    <th className="border border-slate-300 px-3 py-2">Ugovor</th>
-                    <th className="border border-slate-300 px-3 py-2">Akcija</th>
+                  <tr>
+                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                      Prijava
+                    </th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                      Kandidat
+                    </th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                      Program
+                    </th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                      Ugovor
+                    </th>
+                    <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                      Akcija
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {pendingRows.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan={5}
-                        className="border border-slate-300 px-3 py-4 text-center text-slate-500"
-                      >
+                      <td colSpan={5} className="px-4 py-4 text-center text-slate-500">
                         Nema kandidata za finalizaciju u ovom konkursu.
                       </td>
                     </tr>
                   ) : (
                     pendingRows.map((row) => (
-                      <tr key={row.idUpisa} className="odd:bg-white even:bg-slate-50">
-                        <td className="border border-slate-300 px-3 py-2">{row.brojPrijave}</td>
-                        <td className="border border-slate-300 px-3 py-2">
-                          {row.imePrezime ?? "-"}
-                        </td>
-                        <td className="border border-slate-300 px-3 py-2">
-                          {row.studijskiProgram ?? "-"}
-                        </td>
-                        <td className="border border-slate-300 px-3 py-2">
-                          {row.signedContractUploadedAt ?? "-"}
-                        </td>
-                        <td className="border border-slate-300 px-3 py-2">
+                      <tr
+                        key={row.idUpisa}
+                        className="border-b border-slate-200 odd:bg-white even:bg-slate-50 hover:bg-slate-50"
+                      >
+                        <td className="px-4 py-3 text-slate-700">{row.brojPrijave}</td>
+                        <td className="px-4 py-3 text-slate-700">{row.imePrezime ?? "-"}</td>
+                        <td className="px-4 py-3 text-slate-700">{row.studijskiProgram ?? "-"}</td>
+                        <td className="px-4 py-3">
                           <button
                             type="button"
-                            className="rounded bg-emerald-700 px-2 py-1 text-xs font-semibold text-white disabled:opacity-60"
+                            className="rounded-lg border border-slate-300 px-3 py-1 text-xs font-semibold hover:bg-slate-100 disabled:opacity-60"
+                            onClick={() => {
+                              void onDownloadContract(row);
+                            }}
+                            disabled={
+                              !row.signedContractUploadedAt ||
+                              downloadingContractKey === `${row.brojPrijave}|${row.skolskaGodina}`
+                            }
+                          >
+                            {downloadingContractKey === `${row.brojPrijave}|${row.skolskaGodina}`
+                              ? "Preuzimanje..."
+                              : "Preuzmi ugovor"}
+                          </button>
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            type="button"
+                            className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
                             onClick={() => {
                               void onConfirmFinalization(row);
                             }}
                             disabled={
+                              downloadingContractKey ===
+                                `${row.brojPrijave}|${row.skolskaGodina}` ||
                               confirmingFinalizationKey ===
-                              `${row.brojPrijave}|${row.skolskaGodina}`
+                                `${row.brojPrijave}|${row.skolskaGodina}`
                             }
                           >
                             {confirmingFinalizationKey === `${row.brojPrijave}|${row.skolskaGodina}`
@@ -604,7 +661,7 @@ export default function KonkursWorkflowSection({
       <div className="mt-4 flex flex-wrap justify-between gap-3">
         <button
           type="button"
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold disabled:opacity-60"
+          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-100 disabled:opacity-60"
           onClick={onPreviousStep}
           disabled={wizardStep === 1}
         >
@@ -613,7 +670,7 @@ export default function KonkursWorkflowSection({
 
         <button
           type="button"
-          className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          className="rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
           onClick={onNextStep}
           disabled={wizardStep === 4}
         >

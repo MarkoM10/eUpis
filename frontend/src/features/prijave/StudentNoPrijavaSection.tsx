@@ -55,11 +55,11 @@ export default function StudentNoPrijavaSection({
 }: StudentNoPrijavaSectionProps): ReactElement {
   return (
     <>
-      <section className="rounded-2xl border border-slate-300 bg-white p-4">
+      <section className="rounded-2xl border border-slate-300 bg-white p-6">
         <div className="flex items-center gap-3 text-sm">
           <span
             className={`rounded-full px-3 py-1 font-semibold ${
-              wizardStep === 1 ? "bg-teal-700 text-white" : "bg-teal-100 text-teal-900"
+              wizardStep === 1 ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-700"
             }`}
           >
             1. Kandidat
@@ -67,7 +67,7 @@ export default function StudentNoPrijavaSection({
           <span className="text-slate-400">-</span>
           <span
             className={`rounded-full px-3 py-1 font-semibold ${
-              wizardStep === 2 ? "bg-teal-700 text-white" : "bg-slate-200 text-slate-700"
+              wizardStep === 2 ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-700"
             }`}
           >
             2. Prijava i dokumenta
@@ -76,7 +76,7 @@ export default function StudentNoPrijavaSection({
       </section>
 
       {wizardStep === 1 ? (
-        <section className="rounded-2xl border border-slate-300 bg-white p-4">
+        <section className="rounded-2xl border border-slate-300 bg-white p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Korak 1: Kreiranje kandidata</h2>
@@ -88,37 +88,37 @@ export default function StudentNoPrijavaSection({
 
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <input
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Ime i prezime"
               value={form.imePrezime}
               onChange={(event) => onFormChange("imePrezime", event.target.value)}
             />
             <input
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="JMBG"
               value={form.jmbg}
               onChange={(event) => onFormChange("jmbg", event.target.value)}
             />
             <input
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Email"
               value={form.emailVrednost}
               onChange={(event) => onFormChange("emailVrednost", event.target.value)}
             />
             <input
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Adresa - ulica"
               value={form.adresaUlica}
               onChange={(event) => onFormChange("adresaUlica", event.target.value)}
             />
             <input
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Adresa - broj"
               value={form.adresaBroj}
               onChange={(event) => onFormChange("adresaBroj", event.target.value)}
             />
             <input
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Adresa - grad"
               value={form.adresaGrad}
               onChange={(event) => onFormChange("adresaGrad", event.target.value)}
@@ -128,7 +128,7 @@ export default function StudentNoPrijavaSection({
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"
-              className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              className="rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
               onClick={onSubmitKandidat}
               disabled={isSavingKandidat}
             >
@@ -140,7 +140,7 @@ export default function StudentNoPrijavaSection({
 
       {wizardStep === 2 ? (
         <>
-          <section className="rounded-2xl border border-slate-300 bg-white p-4">
+          <section className="rounded-2xl border border-slate-300 bg-white p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">Korak 2: Podaci o prijavi</h2>
@@ -152,7 +152,7 @@ export default function StudentNoPrijavaSection({
 
             <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <select
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={form.idKonkursa}
                 onChange={(event) => onFormChange("idKonkursa", event.target.value)}
                 disabled={activeKonkursi.length === 0}
@@ -168,31 +168,31 @@ export default function StudentNoPrijavaSection({
                 ))}
               </select>
               <input
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm"
                 placeholder="Fakultet"
                 value={selectedKonkurs?.nazivFakulteta ?? ""}
                 readOnly
               />
               <input
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="JMBG"
                 value={form.jmbg}
                 onChange={(event) => onFormChange("jmbg", event.target.value)}
               />
               <input
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Ime i prezime (opciono)"
                 value={form.imePrezime}
                 onChange={(event) => onFormChange("imePrezime", event.target.value)}
               />
               <input
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm"
                 placeholder="Skolska godina"
                 value={form.skolskaGodina}
                 readOnly
               />
               <select
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={form.idPrograma}
                 onChange={(event) => onFormChange("idPrograma", event.target.value)}
                 disabled={!selectedKonkurs || activeKonkursi.length === 0}
@@ -208,12 +208,12 @@ export default function StudentNoPrijavaSection({
               </select>
               <input
                 type="date"
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={form.datumPrijave}
                 onChange={(event) => onFormChange("datumPrijave", event.target.value)}
               />
               <select
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm"
                 value={form.konkursniRok}
                 disabled
               >
@@ -234,7 +234,7 @@ export default function StudentNoPrijavaSection({
             ) : null}
           </section>
 
-          <section className="rounded-2xl border border-slate-300 bg-white p-4">
+          <section className="rounded-2xl border border-slate-300 bg-white p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">Dokumentacija</h2>
@@ -254,44 +254,44 @@ export default function StudentNoPrijavaSection({
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <input
                     type="date"
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={diplomaForm.datumIzdavanja}
                     onChange={(event) => onDiplomaFormChange("datumIzdavanja", event.target.value)}
                   />
                   <input
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Broj ESPB"
                     value={diplomaForm.brojEspb}
                     onChange={(event) => onDiplomaFormChange("brojEspb", event.target.value)}
                   />
                   <input
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Steceno zvanje"
                     value={diplomaForm.stecenoZvanje}
                     onChange={(event) => onDiplomaFormChange("stecenoZvanje", event.target.value)}
                   />
                   <input
                     type="date"
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={diplomaForm.datumDiplomiranja}
                     onChange={(event) =>
                       onDiplomaFormChange("datumDiplomiranja", event.target.value)
                     }
                   />
                   <input
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Godina upisa"
                     value={diplomaForm.godinaUpisa}
                     onChange={(event) => onDiplomaFormChange("godinaUpisa", event.target.value)}
                   />
                   <input
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Prosecna ocena"
                     value={diplomaForm.prosecnaOcena}
                     onChange={(event) => onDiplomaFormChange("prosecnaOcena", event.target.value)}
                   />
                   <select
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={diplomaForm.idFakulteta}
                     onChange={(event) => onDiplomaFormChange("idFakulteta", event.target.value)}
                   >
@@ -304,7 +304,7 @@ export default function StudentNoPrijavaSection({
                   </select>
                   <input
                     type="file"
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm md:col-span-2"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm md:col-span-2 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-blue-700"
                     onChange={(event) =>
                       onDiplomaFormChange("file", event.target.files?.[0] ?? null)
                     }
@@ -328,12 +328,12 @@ export default function StudentNoPrijavaSection({
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <input
                     type="date"
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={uverenjeForm.datumIzdavanja}
                     onChange={(event) => onUverenjeFormChange("datumIzdavanja", event.target.value)}
                   />
                   <select
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={uverenjeForm.idFakulteta}
                     onChange={(event) => onUverenjeFormChange("idFakulteta", event.target.value)}
                   >
@@ -345,20 +345,20 @@ export default function StudentNoPrijavaSection({
                     ))}
                   </select>
                   <input
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Ukupno ESPB"
                     value={uverenjeForm.ukupnoEspb}
                     onChange={(event) => onUverenjeFormChange("ukupnoEspb", event.target.value)}
                   />
                   <input
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Prosecna ocena"
                     value={uverenjeForm.prosecnaOcena}
                     onChange={(event) => onUverenjeFormChange("prosecnaOcena", event.target.value)}
                   />
                   <input
                     type="file"
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm md:col-span-2"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm md:col-span-2 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-blue-700"
                     onChange={(event) =>
                       onUverenjeFormChange("file", event.target.files?.[0] ?? null)
                     }
@@ -379,7 +379,7 @@ export default function StudentNoPrijavaSection({
             <div className="mt-4 flex flex-wrap gap-3">
               <button
                 type="button"
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-100"
                 onClick={onBackToKandidatStep}
                 disabled={isSubmitting}
               >
@@ -387,7 +387,7 @@ export default function StudentNoPrijavaSection({
               </button>
               <button
                 type="button"
-                className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                className="rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
                 onClick={onSubmitPrijava}
                 disabled={isSubmitting}
               >

@@ -143,6 +143,12 @@ export default function DashboardPage(): ReactElement {
             >
               Konkurs
             </Link>
+            <Link
+              to="/ranking-lists"
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+            >
+              Rang Liste
+            </Link>
             <button
               type="button"
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"

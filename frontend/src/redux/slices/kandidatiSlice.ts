@@ -2,13 +2,15 @@ import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/tool
 import type { RootState } from "../store";
 import { toApiClientError } from "../../services/api";
 import { listKandidatiRequest } from "../../services/kandidatiService";
-import type { Kandidat } from "../../types/models/kandidat";
+import type { Kandidat, KandidatListResponse } from "../../types/models/kandidat";
 
 interface KandidatiState {
   rows: Kandidat[];
   search: string;
   sortValue: string;
   tipKandidataFilter: string;
+  page: number;
+  pageSize: number;
   isLoading: boolean;
   errorMessage: string | null;
   oracleDetails?: string;
@@ -19,13 +21,15 @@ const initialState: KandidatiState = {
   search: "",
   sortValue: "ime_prezime:asc",
   tipKandidataFilter: "svi",
+  page: 1,
+  pageSize: 10,
   isLoading: false,
   errorMessage: null,
   oracleDetails: undefined,
 };
 
 export const loadKandidati = createAsyncThunk<
-  Kandidat[],
+  KandidatListResponse,
   void,
   { state: RootState; rejectValue: { message: string; oracleDetails?: string } }
 >("kandidati/load", async (_arg, { getState, rejectWithValue }) => {
@@ -33,7 +37,11 @@ export const loadKandidati = createAsyncThunk<
   const token = state.auth.token;
 
   if (!token) {
-    return [];
+    return {
+      rows: [],
+      page: state.kandidati.page,
+      pageSize: state.kandidati.pageSize,
+    };
   }
 
   const [sortBy, sortDirectionRaw] = state.kandidati.sortValue.split(":");
@@ -48,9 +56,11 @@ export const loadKandidati = createAsyncThunk<
         state.kandidati.tipKandidataFilter === "svi"
           ? undefined
           : state.kandidati.tipKandidataFilter,
+      page: state.kandidati.page,
+      pageSize: state.kandidati.pageSize,
     });
 
-    return response.data.rows;
+    return response.data;
   } catch (error) {
     const parsed = toApiClientError(error);
     return rejectWithValue({
@@ -66,12 +76,22 @@ const kandidatiSlice = createSlice({
   reducers: {
     setKandidatiSearch: (state, action: PayloadAction<string>) => {
       state.search = action.payload;
+      state.page = 1;
     },
     setKandidatiSortValue: (state, action: PayloadAction<string>) => {
       state.sortValue = action.payload;
+      state.page = 1;
     },
     setTipKandidataFilter: (state, action: PayloadAction<string>) => {
       state.tipKandidataFilter = action.payload;
+      state.page = 1;
+    },
+    setKandidatiPage: (state, action: PayloadAction<number>) => {
+      state.page = action.payload;
+    },
+    setKandidatiPageSize: (state, action: PayloadAction<number>) => {
+      state.pageSize = action.payload;
+      state.page = 1;
     },
     clearKandidatiError: (state) => {
       state.errorMessage = null;
@@ -87,7 +107,9 @@ const kandidatiSlice = createSlice({
       })
       .addCase(loadKandidati.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.rows = action.payload;
+        state.rows = action.payload.rows;
+        state.page = action.payload.page;
+        state.pageSize = action.payload.pageSize;
       })
       .addCase(loadKandidati.rejected, (state, action) => {
         state.isLoading = false;
@@ -103,6 +125,8 @@ export const {
   setKandidatiSearch,
   setKandidatiSortValue,
   setTipKandidataFilter,
+  setKandidatiPage,
+  setKandidatiPageSize,
   clearKandidatiError,
 } = kandidatiSlice.actions;
 

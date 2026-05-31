@@ -84,6 +84,12 @@ const getUverenjeInput = (req: Request): UverenjeDocumentInput => ({
   prosecnaOcena: toNullableNumber(req.body.prosecnaOcena),
 });
 
+const buildAsciiFallbackFileName = (fileName: string): string => {
+  const normalized = fileName.normalize("NFKD").replace(/[^\x20-\x7E]/g, "");
+  const trimmed = normalized.trim();
+  return trimmed.length ? trimmed : "document.bin";
+};
+
 export const prijavaDocumentUploadMiddleware = upload.single("file");
 
 export const getPrijavaDocumentsHandler = async (
@@ -134,11 +140,12 @@ export const downloadPrijavaDocumentHandler = async (
 ): Promise<void> => {
   try {
     const result = await downloadPrijavaDocumentService(getKey(req), getDocumentType(req));
+    const asciiFallbackName = buildAsciiFallbackFileName(result.fileName);
     res.setHeader("Content-Type", result.mimeType);
     res.setHeader("Content-Length", String(result.fileSize));
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename*=UTF-8''${encodeURIComponent(result.fileName)}`,
+      `attachment; filename="${asciiFallbackName}"; filename*=UTF-8''${encodeURIComponent(result.fileName)}`,
     );
     res.send(result.fileContent);
   } catch (error) {

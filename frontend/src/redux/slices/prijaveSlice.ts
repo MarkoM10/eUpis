@@ -4,7 +4,7 @@ import { toApiClientError } from "../../services/api";
 import { listFakultetiRequest } from "../../services/metaService";
 import { listPrijaveRequest } from "../../services/prijaveService";
 import type { FakultetOption } from "../../types/models/fakultet";
-import type { Prijava } from "../../types/models/prijava";
+import type { Prijava, PrijavaListResponse } from "../../types/models/prijava";
 
 interface PrijaveState {
   rows: Prijava[];
@@ -13,6 +13,8 @@ interface PrijaveState {
   sortValue: string;
   statusFilter: string;
   partitionFilter: string;
+  page: number;
+  pageSize: number;
   isLoadingRows: boolean;
   isLoadingFakulteti: boolean;
   errorMessage: string | null;
@@ -26,6 +28,8 @@ const initialState: PrijaveState = {
   sortValue: "broj_prijave:asc",
   statusFilter: "svi",
   partitionFilter: "sve",
+  page: 1,
+  pageSize: 10,
   isLoadingRows: false,
   isLoadingFakulteti: false,
   errorMessage: null,
@@ -33,7 +37,7 @@ const initialState: PrijaveState = {
 };
 
 export const loadPrijaveRows = createAsyncThunk<
-  Prijava[],
+  PrijavaListResponse,
   void,
   { state: RootState; rejectValue: { message: string; oracleDetails?: string } }
 >("prijave/loadRows", async (_arg, { getState, rejectWithValue }) => {
@@ -42,7 +46,11 @@ export const loadPrijaveRows = createAsyncThunk<
   const role = state.auth.role;
 
   if (!token || role !== "admin") {
-    return [];
+    return {
+      rows: [],
+      page: state.prijave.page,
+      pageSize: state.prijave.pageSize,
+    };
   }
 
   const [sortBy, sortDirectionRaw] = state.prijave.sortValue.split(":");
@@ -56,9 +64,11 @@ export const loadPrijaveRows = createAsyncThunk<
       status_prijave: state.prijave.statusFilter === "svi" ? undefined : state.prijave.statusFilter,
       partition:
         state.prijave.partitionFilter === "sve" ? undefined : state.prijave.partitionFilter,
+      page: state.prijave.page,
+      pageSize: state.prijave.pageSize,
     });
 
-    return response.data.rows;
+    return response.data;
   } catch (error) {
     const parsed = toApiClientError(error);
     return rejectWithValue({
@@ -91,15 +101,26 @@ const prijaveSlice = createSlice({
   reducers: {
     setPrijavaSearch: (state, action: PayloadAction<string>) => {
       state.search = action.payload;
+      state.page = 1;
     },
     setPrijavaSortValue: (state, action: PayloadAction<string>) => {
       state.sortValue = action.payload;
+      state.page = 1;
     },
     setPrijavaStatusFilter: (state, action: PayloadAction<string>) => {
       state.statusFilter = action.payload;
+      state.page = 1;
     },
     setPrijavaPartitionFilter: (state, action: PayloadAction<string>) => {
       state.partitionFilter = action.payload;
+      state.page = 1;
+    },
+    setPrijavaPage: (state, action: PayloadAction<number>) => {
+      state.page = action.payload;
+    },
+    setPrijavaPageSize: (state, action: PayloadAction<number>) => {
+      state.pageSize = action.payload;
+      state.page = 1;
     },
     clearPrijaveError: (state) => {
       state.errorMessage = null;
@@ -115,7 +136,9 @@ const prijaveSlice = createSlice({
       })
       .addCase(loadPrijaveRows.fulfilled, (state, action) => {
         state.isLoadingRows = false;
-        state.rows = action.payload;
+        state.rows = action.payload.rows;
+        state.page = action.payload.page;
+        state.pageSize = action.payload.pageSize;
       })
       .addCase(loadPrijaveRows.rejected, (state, action) => {
         state.isLoadingRows = false;
@@ -143,6 +166,8 @@ export const {
   setPrijavaSortValue,
   setPrijavaStatusFilter,
   setPrijavaPartitionFilter,
+  setPrijavaPage,
+  setPrijavaPageSize,
   clearPrijaveError,
 } = prijaveSlice.actions;
 

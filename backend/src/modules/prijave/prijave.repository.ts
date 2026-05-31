@@ -21,9 +21,21 @@ type PrijavaRow = {
   SISTEMSKI_UPDATE: string | null;
 };
 
+const toDateOnlyString = (value: Date | null): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
 const mapRow = (row: PrijavaRow): PrijavaRecord => ({
   brojPrijave: row.BROJ_PRIJAVE,
-  datumPrijave: row.DATUM_PRIJAVE ? row.DATUM_PRIJAVE.toISOString() : null,
+  datumPrijave: toDateOnlyString(row.DATUM_PRIJAVE),
   skolskaGodina: row.SKOLSKA_GODINA,
   idKonkursa: row.ID_KONKURSA,
   idKorisnika: row.ID_KORISNIKA,
@@ -276,15 +288,21 @@ export const updatePrijava = async (
     const existingImePrezime = existing.imePrezime?.trim() ?? null;
 
     if (incomingImePrezime !== existingImePrezime) {
-      const oracleMessage =
-        "Nije dozvoljena izmena imena i prezimena: vrednost mora ostati ista kao u bazi.";
-
-      throw new ApiError(
-        400,
-        "Nije dozvoljena izmena imena i prezimena",
-        "Polje imePrezime mora ostati isto kao u bazi prilikom azuriranja prijave.",
-        oracleMessage,
+      await executeSql(
+        `
+          UPDATE Prijava
+          SET ime_prezime = :imePrezime
+          WHERE broj_prijave = :brojPrijave
+            AND skolska_godina = :skolskaGodina
+        `,
+        {
+          brojPrijave: key.brojPrijave,
+          skolskaGodina: key.skolskaGodina,
+          imePrezime: input.imePrezime ?? null,
+        },
       );
+
+      return;
     }
   }
 

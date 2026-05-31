@@ -185,18 +185,14 @@ export default function AdminKonkursSection({
   };
 
   return (
-    <section className="rounded-2xl border border-slate-300 bg-white p-4">
+    <section className="rounded-2xl border border-slate-300 bg-white p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Konkursi za master studije</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Prvo se kreira konkurs sa programima/modulima i brojem mesta, pa kandidati podnose
-            prijave.
-          </p>
         </div>
         <button
           type="button"
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-100 disabled:opacity-60"
           onClick={() => {
             void loadData();
           }}
@@ -208,7 +204,7 @@ export default function AdminKonkursSection({
 
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
         <select
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={selectedFakultetId}
           onChange={(event) => setSelectedFakultetId(event.target.value)}
         >
@@ -220,31 +216,31 @@ export default function AdminKonkursSection({
           ))}
         </select>
         <input
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Skolska godina"
           value={skolskaGodina}
           onChange={(event) => setSkolskaGodina(event.target.value)}
         />
         <input
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Konkursni rok"
           value={konkursniRok}
           onChange={(event) => setKonkursniRok(event.target.value)}
         />
         <input
           type="date"
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={datumOd}
           onChange={(event) => setDatumOd(event.target.value)}
         />
         <input
           type="date"
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={datumDo}
           onChange={(event) => setDatumDo(event.target.value)}
         />
         <select
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={status}
           onChange={(event) => setStatus(event.target.value as KonkursStatus)}
         >
@@ -259,7 +255,7 @@ export default function AdminKonkursSection({
         {stavke.map((stavka, index) => (
           <div key={`stavka-${index}`} className="grid gap-2 md:grid-cols-[1fr,220px,120px]">
             <select
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={stavka.idPrograma}
               onChange={(event) => onStavkaChange(index, { idPrograma: event.target.value })}
               disabled={!selectedFakultetId}
@@ -274,7 +270,7 @@ export default function AdminKonkursSection({
               ))}
             </select>
             <input
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Broj dostupnih mesta"
               value={stavka.brojDostupnihMesta}
               onChange={(event) =>
@@ -283,7 +279,7 @@ export default function AdminKonkursSection({
             />
             <button
               type="button"
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold hover:bg-slate-100"
               onClick={() => removeStavka(index)}
             >
               Ukloni
@@ -295,14 +291,14 @@ export default function AdminKonkursSection({
       <div className="mt-3 flex flex-wrap gap-3">
         <button
           type="button"
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-100"
           onClick={addStavka}
         >
           Dodaj program/modul
         </button>
         <button
           type="button"
-          className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          className="rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
           onClick={() => {
             void onCreate();
           }}
@@ -313,41 +309,51 @@ export default function AdminKonkursSection({
       </div>
 
       <div className="mt-6 overflow-auto">
-        <table className="min-w-full border-collapse text-sm">
+        <table className="w-full text-sm">
           <thead>
-            <tr className="bg-slate-100 text-left text-slate-700">
-              <th className="border border-slate-300 px-3 py-2">Konkurs</th>
-              <th className="border border-slate-300 px-3 py-2">Fakultet</th>
-              <th className="border border-slate-300 px-3 py-2">Period</th>
-              <th className="border border-slate-300 px-3 py-2">Status</th>
-              <th className="border border-slate-300 px-3 py-2">Programi/moduli</th>
-              <th className="border border-slate-300 px-3 py-2">Promena statusa</th>
+            <tr>
+              <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                Konkurs
+              </th>
+              <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                Fakultet
+              </th>
+              <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                Period
+              </th>
+              <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                Status
+              </th>
+              <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                Programi/moduli
+              </th>
+              <th className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-left font-semibold text-slate-900">
+                Promena statusa
+              </th>
             </tr>
           </thead>
           <tbody>
             {konkursi.length === 0 ? (
               <tr>
-                <td
-                  colSpan={6}
-                  className="border border-slate-300 px-3 py-4 text-center text-slate-500"
-                >
+                <td colSpan={6} className="px-4 py-4 text-center text-slate-500">
                   Nema kreiranih konkursa.
                 </td>
               </tr>
             ) : (
               konkursi.map((konkurs) => (
-                <tr key={konkurs.idKonkursa} className="odd:bg-white even:bg-slate-50">
-                  <td className="border border-slate-300 px-3 py-2">
+                <tr
+                  key={konkurs.idKonkursa}
+                  className="border-b border-slate-200 odd:bg-white even:bg-slate-50 hover:bg-slate-50"
+                >
+                  <td className="px-4 py-3 text-slate-700">
                     #{konkurs.idKonkursa} | {konkurs.skolskaGodina} | {konkurs.konkursniRok}
                   </td>
-                  <td className="border border-slate-300 px-3 py-2">
-                    {konkurs.nazivFakulteta ?? "-"}
-                  </td>
-                  <td className="border border-slate-300 px-3 py-2">
+                  <td className="px-4 py-3 text-slate-700">{konkurs.nazivFakulteta ?? "-"}</td>
+                  <td className="px-4 py-3 text-slate-700">
                     {konkurs.datumOd.slice(0, 10)} - {konkurs.datumDo.slice(0, 10)}
                   </td>
-                  <td className="border border-slate-300 px-3 py-2">{konkurs.status}</td>
-                  <td className="border border-slate-300 px-3 py-2">
+                  <td className="px-4 py-3 text-slate-700">{konkurs.status}</td>
+                  <td className="px-4 py-3 text-slate-700">
                     {konkurs.stavke.length === 0
                       ? "Bez stavki"
                       : konkurs.stavke
@@ -360,9 +366,9 @@ export default function AdminKonkursSection({
                           })
                           .join(", ")}
                   </td>
-                  <td className="border border-slate-300 px-3 py-2">
+                  <td className="px-4 py-3">
                     <select
-                      className="rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={konkurs.status}
                       onChange={(event) => {
                         void onStatusChange(

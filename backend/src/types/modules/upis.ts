@@ -31,6 +31,7 @@ export interface SaveExamScoreInput {
 export interface RankingListSummary {
   idRangListe: number;
   idKonkursa: number | null;
+  nazivKonkursa: string | null;
   idPrograma: number | null;
   nazivPrograma: string | null;
   modul: string | null;

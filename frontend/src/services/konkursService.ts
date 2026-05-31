@@ -2,6 +2,7 @@ import axios from "axios";
 import type { ApiSuccess } from "../types/api/common";
 import type { ActiveKonkursOption, Konkurs, KonkursStatus } from "../types/models/konkurs";
 import type {
+  DownloadedEnrollmentContract,
   EligiblePrijavaRow,
   PendingEnrollmentFinalizationRow,
   RankingItem,
@@ -12,6 +13,43 @@ import { buildApiUrl } from "./api";
 const authHeaders = (token: string) => ({
   Authorization: `Bearer ${token}`,
 });
+
+const getFileNameFromDisposition = (contentDisposition?: string): string | null => {
+  if (!contentDisposition) {
+    return null;
+  }
+
+  const utfMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utfMatch?.[1]) {
+    try {
+      return decodeURIComponent(utfMatch[1]);
+    } catch {
+      return utfMatch[1];
+    }
+  }
+
+  const plainMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+  return plainMatch?.[1] ?? null;
+};
+
+const extensionFromMimeType = (mimeType: string): string => {
+  const normalized = mimeType.toLowerCase();
+
+  if (normalized.includes("pdf")) {
+    return ".pdf";
+  }
+  if (normalized.includes("wordprocessingml")) {
+    return ".docx";
+  }
+  if (normalized.includes("msword")) {
+    return ".doc";
+  }
+  if (normalized.includes("text/plain")) {
+    return ".txt";
+  }
+
+  return ".bin";
+};
 
 export const listKonkursiRequest = async (
   token: string,
@@ -214,4 +252,37 @@ export const confirmKonkursEnrollmentFinalizationRequest = async (
   );
 
   return response.data;
+};
+
+export const downloadKonkursEnrollmentContractRequest = async (
+  token: string,
+  brojPrijave: number,
+  skolskaGodina: string,
+): Promise<DownloadedEnrollmentContract> => {
+  const response = await axios.get<Blob>(
+    buildApiUrl(
+      `/upis/finalizacija/${brojPrijave}/${encodeURIComponent(skolskaGodina)}/ugovor/download`,
+    ),
+    {
+      headers: authHeaders(token),
+      responseType: "blob",
+    },
+  );
+
+  return {
+    blob: response.data,
+    mimeType: String(response.headers["content-type"] ?? "application/octet-stream"),
+    fileName: (() => {
+      const mimeType = String(response.headers["content-type"] ?? "application/octet-stream");
+      const parsedName = getFileNameFromDisposition(
+        String(response.headers["content-disposition"] ?? ""),
+      );
+
+      if (parsedName && parsedName.trim().length > 0) {
+        return parsedName;
+      }
+
+      return `ugovor-${brojPrijave}-${skolskaGodina}${extensionFromMimeType(mimeType)}`;
+    })(),
+  };
 };

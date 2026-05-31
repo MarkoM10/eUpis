@@ -1,6 +1,8 @@
 import { executeSql } from "../../db/oracle/execute";
+import { getOracleConnection } from "../../db/oracle/pool";
 import { ApiError } from "../../shared/apiError";
 import type { KandidatMutationInput, KandidatRecord } from "../../types/modules/kandidati";
+import oracledb from "oracledb";
 
 type KandidatRow = {
   JMBG: string;
@@ -199,11 +201,89 @@ export const updateKandidat = async (jmbg: string, input: KandidatMutationInput)
 };
 
 export const deleteKandidat = async (jmbg: string): Promise<void> => {
-  await executeSql(
-    `
-      DELETE FROM Kandidat
-      WHERE jmbg = :jmbg
-    `,
-    { jmbg },
-  );
+  const connection = await getOracleConnection();
+
+  try {
+    await connection.execute(
+      `
+        DELETE FROM Diploma d
+        WHERE (d.broj_prijave, d.skolska_godina) IN (
+          SELECT p.broj_prijave, p.skolska_godina
+          FROM Prijava p
+          WHERE p.jmbg = :jmbg
+        )
+      `,
+      { jmbg },
+      { outFormat: oracledb.OUT_FORMAT_OBJECT, autoCommit: false },
+    );
+
+    await connection.execute(
+      `
+        DELETE FROM UverenjeOPolozenimPredmetima u
+        WHERE (u.broj_prijave, u.skolska_godina) IN (
+          SELECT p.broj_prijave, p.skolska_godina
+          FROM Prijava p
+          WHERE p.jmbg = :jmbg
+        )
+      `,
+      { jmbg },
+      { outFormat: oracledb.OUT_FORMAT_OBJECT, autoCommit: false },
+    );
+
+    await connection.execute(
+      `
+        DELETE FROM Upis_Finalizacija uf
+        WHERE (uf.broj_prijave, uf.skolska_godina) IN (
+          SELECT p.broj_prijave, p.skolska_godina
+          FROM Prijava p
+          WHERE p.jmbg = :jmbg
+        )
+      `,
+      { jmbg },
+      { outFormat: oracledb.OUT_FORMAT_OBJECT, autoCommit: false },
+    );
+
+    await connection.execute(
+      `
+        DELETE FROM StavkaRangListe s
+        WHERE s.broj_prijave IN (
+          SELECT p.broj_prijave
+          FROM Prijava p
+          WHERE p.jmbg = :jmbg
+        )
+      `,
+      { jmbg },
+      { outFormat: oracledb.OUT_FORMAT_OBJECT, autoCommit: false },
+    );
+
+    await connection.execute(
+      `
+        DELETE FROM Prijava
+        WHERE jmbg = :jmbg
+      `,
+      { jmbg },
+      { outFormat: oracledb.OUT_FORMAT_OBJECT, autoCommit: false },
+    );
+
+    await connection.execute(
+      `
+        DELETE FROM Kandidat
+        WHERE jmbg = :jmbg
+      `,
+      { jmbg },
+      { outFormat: oracledb.OUT_FORMAT_OBJECT, autoCommit: false },
+    );
+
+    await connection.commit();
+  } catch (error) {
+    try {
+      await connection.rollback();
+    } catch {
+      // Ignore rollback errors and bubble up the original failure.
+    }
+
+    throw error;
+  } finally {
+    await connection.close();
+  }
 };

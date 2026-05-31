@@ -122,6 +122,7 @@ const mapEligiblePrijava = (row: EligiblePrijavaDbRow): EligiblePrijavaRow => ({
 const mapRankingList = (row: RankingListRow): RankingListSummary => ({
   idRangListe: row.ID_RANG_LISTE,
   idKonkursa: row.ID_KONKURSA,
+  nazivKonkursa: null,
   idPrograma: row.ID_PROGRAMA,
   nazivPrograma: row.NAZIV_PROGRAMA,
   modul: row.MODUL,

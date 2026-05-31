@@ -1,9 +1,8 @@
 import type { ReactElement } from "react";
+import { Link } from "react-router-dom";
 import { DataTable } from "../../components/ui/DataTable";
 import { FilterBar } from "../../components/ui/FilterBar";
-import type { PrijavaDocumentType } from "../../types/models/prijavaDocument";
 import type { Prijava } from "../../types/models/prijava";
-import { getDocumentActionKey, getPrijavaRowKey as getRowKey } from "../../utils/utils";
 
 interface AdminPrijaveSectionProps {
   rows: Prijava[];
@@ -12,23 +11,12 @@ interface AdminPrijaveSectionProps {
   statusFilter: string;
   partitionFilter: string;
   isLoadingRows: boolean;
-  adminDocumentsByKey: Record<
-    string,
-    { diplomaHasFile: boolean; uverenjeHasFile: boolean; isLoading: boolean }
-  >;
-  adminStatusByKey: Record<string, string>;
-  savingStatusKey: string | null;
-  downloadingDocumentKey: string | null;
   onSearchChange: (value: string) => void;
   onSortChange: (value: string) => void;
   onStatusFilterChange: (value: string) => void;
   onPartitionFilterChange: (value: string) => void;
   onApply: () => void;
   onRefresh: () => void;
-  onStatusValueChange: (rowKey: string, value: string) => void;
-  onDownloadDocument: (row: Prijava, documentType: PrijavaDocumentType) => void;
-  onSaveStatus: (row: Prijava) => void;
-  onEdit: (row: Prijava) => void;
 }
 
 export default function AdminPrijaveSection({
@@ -38,20 +26,12 @@ export default function AdminPrijaveSection({
   statusFilter,
   partitionFilter,
   isLoadingRows,
-  adminDocumentsByKey,
-  adminStatusByKey,
-  savingStatusKey,
-  downloadingDocumentKey,
   onSearchChange,
   onSortChange,
   onStatusFilterChange,
   onPartitionFilterChange,
   onApply,
   onRefresh,
-  onStatusValueChange,
-  onDownloadDocument,
-  onSaveStatus,
-  onEdit,
 }: AdminPrijaveSectionProps): ReactElement {
   return (
     <>
@@ -92,7 +72,7 @@ export default function AdminPrijaveSection({
       <div className="flex justify-end">
         <button
           type="button"
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold"
+          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-100 disabled:opacity-60"
           onClick={onRefresh}
           disabled={isLoadingRows}
         >
@@ -117,122 +97,23 @@ export default function AdminPrijaveSection({
             render: (row) => (row.datumPrijave ? row.datumPrijave.slice(0, 10) : "-"),
           },
           {
-            key: "diploma",
-            header: "Diploma",
-            render: (row) => {
-              const key = getRowKey(row.brojPrijave, row.skolskaGodina);
-              const docState = adminDocumentsByKey[key];
-              if (!docState || docState.isLoading) {
-                return "Ucitavanje...";
-              }
-              return docState.diplomaHasFile ? "Otpremljena" : "Nedostaje";
-            },
-          },
-          {
-            key: "uverenje",
-            header: "Uverenje",
-            render: (row) => {
-              const key = getRowKey(row.brojPrijave, row.skolskaGodina);
-              const docState = adminDocumentsByKey[key];
-              if (!docState || docState.isLoading) {
-                return "Ucitavanje...";
-              }
-              return docState.uverenjeHasFile ? "Otpremljeno" : "Nedostaje";
-            },
-          },
-          {
             key: "status",
             header: "Status",
-            render: (row) => {
-              const key = getRowKey(row.brojPrijave, row.skolskaGodina);
-              const value = adminStatusByKey[key] ?? row.statusPrijave ?? "Podneta";
-
-              return (
-                <select
-                  className="rounded border border-slate-300 px-2 py-1 text-xs"
-                  value={value}
-                  onChange={(event) => {
-                    onStatusValueChange(key, event.target.value);
-                  }}
-                >
-                  <option value="Podneta">Podneta</option>
-                  <option value="Odobrena">Odobrena</option>
-                  <option value="Odbijena">Odbijena</option>
-                </select>
-              );
-            },
+            render: (row) => row.statusPrijave ?? "Podneta",
           },
           { key: "ime", header: "Kandidat", render: (row) => row.imePrezime ?? "-" },
           { key: "jmbg", header: "JMBG", render: (row) => row.jmbg ?? "-" },
           {
             key: "akcije",
             header: "Akcije",
-            render: (row) => {
-              const key = getRowKey(row.brojPrijave, row.skolskaGodina);
-              const currentStatus = row.statusPrijave ?? "Podneta";
-              const selectedStatus = adminStatusByKey[key] ?? currentStatus;
-              const hasStatusChanged = selectedStatus !== currentStatus;
-
-              return (
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold disabled:opacity-60"
-                    onClick={() => onDownloadDocument(row, "diploma")}
-                    disabled={(() => {
-                      const docState = adminDocumentsByKey[key];
-                      if (!docState || docState.isLoading || !docState.diplomaHasFile) {
-                        return true;
-                      }
-                      return (
-                        downloadingDocumentKey ===
-                        getDocumentActionKey(row.brojPrijave, row.skolskaGodina, "diploma")
-                      );
-                    })()}
-                  >
-                    {downloadingDocumentKey ===
-                    getDocumentActionKey(row.brojPrijave, row.skolskaGodina, "diploma")
-                      ? "Preuzimanje..."
-                      : "Preuzmi diploma"}
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold disabled:opacity-60"
-                    onClick={() => onDownloadDocument(row, "uverenje")}
-                    disabled={(() => {
-                      const docState = adminDocumentsByKey[key];
-                      if (!docState || docState.isLoading || !docState.uverenjeHasFile) {
-                        return true;
-                      }
-                      return (
-                        downloadingDocumentKey ===
-                        getDocumentActionKey(row.brojPrijave, row.skolskaGodina, "uverenje")
-                      );
-                    })()}
-                  >
-                    {downloadingDocumentKey ===
-                    getDocumentActionKey(row.brojPrijave, row.skolskaGodina, "uverenje")
-                      ? "Preuzimanje..."
-                      : "Preuzmi uverenje"}
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold disabled:opacity-60"
-                    onClick={() => onSaveStatus(row)}
-                    disabled={savingStatusKey === key || !hasStatusChanged}
-                  >
-                    {savingStatusKey === key ? "Cuvanje..." : "Sacuvaj status"}
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold"
-                    onClick={() => onEdit(row)}
-                  >
-                    Izmeni
-                  </button>
-                </div>
-              );
-            },
+            render: (row) => (
+              <Link
+                to={`/prijave/${row.brojPrijave}/${encodeURIComponent(row.skolskaGodina)}`}
+                className="inline-block rounded-lg border border-slate-300 px-3 py-1 text-xs font-semibold hover:bg-slate-100"
+              >
+                Detalji
+              </Link>
+            ),
           },
         ]}
       />

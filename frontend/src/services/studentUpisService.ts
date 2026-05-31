@@ -14,11 +14,34 @@ const getFileNameFromDisposition = (contentDisposition?: string): string | null 
 
   const utfMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
   if (utfMatch?.[1]) {
-    return decodeURIComponent(utfMatch[1]);
+    try {
+      return decodeURIComponent(utfMatch[1]);
+    } catch {
+      return utfMatch[1];
+    }
   }
 
   const plainMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
   return plainMatch?.[1] ?? null;
+};
+
+const extensionFromMimeType = (mimeType: string): string => {
+  const normalized = mimeType.toLowerCase();
+
+  if (normalized.includes("pdf")) {
+    return ".pdf";
+  }
+  if (normalized.includes("wordprocessingml")) {
+    return ".docx";
+  }
+  if (normalized.includes("msword")) {
+    return ".doc";
+  }
+  if (normalized.includes("text/plain")) {
+    return ".txt";
+  }
+
+  return ".bin";
 };
 
 export const getStudentAdmissionStatusRequest = async (
@@ -66,8 +89,17 @@ export const downloadStudentSignedEnrollmentContractRequest = async (
   return {
     blob: response.data,
     mimeType: String(response.headers["content-type"] ?? "application/octet-stream"),
-    fileName:
-      getFileNameFromDisposition(String(response.headers["content-disposition"] ?? "")) ??
-      "potpisani-ugovor.bin",
+    fileName: (() => {
+      const mimeType = String(response.headers["content-type"] ?? "application/octet-stream");
+      const parsedName = getFileNameFromDisposition(
+        String(response.headers["content-disposition"] ?? ""),
+      );
+
+      if (parsedName && parsedName.trim().length > 0) {
+        return parsedName;
+      }
+
+      return `potvrda-o-studiranju${extensionFromMimeType(mimeType)}`;
+    })(),
   };
 };

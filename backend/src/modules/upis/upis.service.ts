@@ -162,6 +162,7 @@ const ensureRankingList = async (
   return {
     idRangListe,
     idKonkursa,
+    nazivKonkursa: null,
     idPrograma,
     nazivPrograma: null,
     modul: null,
