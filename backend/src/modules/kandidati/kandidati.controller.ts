@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { ok, okList } from "../../shared/httpResponse";
 import {
-  createKandidatService,
   deleteKandidatService,
   getKandidatService,
   listKandidatiService,
@@ -35,19 +34,6 @@ export const getKandidatHandler = async (
   try {
     const result = await getKandidatService(getJmbgParam(req));
     res.json(ok("Kandidat je uspesno ucitan.", result));
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const createKandidatHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
-    await createKandidatService(req.body as KandidatMutationInput);
-    res.status(201).json(ok("Kandidat je uspesno dodat.", { created: true }));
   } catch (error) {
     next(error);
   }

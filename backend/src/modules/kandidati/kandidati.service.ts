@@ -1,7 +1,6 @@
 import {
   deleteKandidat,
   getKandidatByJmbg,
-  insertKandidat,
   listKandidati,
   updateKandidat,
 } from "./kandidati.repository";
@@ -15,10 +14,6 @@ export const listKandidatiService = async (
 
 export const getKandidatService = async (jmbg: string): Promise<KandidatRecord> => {
   return getKandidatByJmbg(jmbg);
-};
-
-export const createKandidatService = async (payload: KandidatMutationInput): Promise<void> => {
-  await insertKandidat(payload);
 };
 
 export const updateKandidatService = async (

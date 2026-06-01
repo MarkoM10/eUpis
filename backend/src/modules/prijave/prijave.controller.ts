@@ -7,11 +7,11 @@ import type {
   StudentKandidatSetupInput,
 } from "../../types/modules/prijave";
 import {
+  addStudentKandidatiService,
   createPrijavaService,
   deletePrijavaService,
   getPrijavaService,
   listPrijaveService,
-  upsertStudentKandidatService,
   updatePrijavaService,
   updatePrijavaStatusService,
 } from "./prijave.service";
@@ -74,14 +74,14 @@ export const createPrijavaHandler = async (
   }
 };
 
-export const upsertStudentKandidatHandler = async (
+export const addStudentKandidatHandler = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
   try {
-    await upsertStudentKandidatService(req.body as StudentKandidatSetupInput);
-    res.json(ok("Podaci kandidata su uspesno sacuvani.", { upserted: true }));
+    await addStudentKandidatiService(req.body as StudentKandidatSetupInput);
+    res.json(ok("Podaci kandidata su uspesno sacuvani.", { added: true }));
   } catch (error) {
     next(error);
   }

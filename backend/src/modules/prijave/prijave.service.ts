@@ -65,7 +65,7 @@ const ensureRequiredKandidatSetupFields = (payload: StudentKandidatSetupInput): 
   }
 };
 
-export const upsertStudentKandidatService = async (
+export const addStudentKandidatiService = async (
   payload: StudentKandidatSetupInput,
 ): Promise<void> => {
   ensureRequiredKandidatSetupFields(payload);

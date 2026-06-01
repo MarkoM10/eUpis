@@ -384,7 +384,7 @@ export const generateRankingService = async (
   };
 };
 
-export const finalizeRankingService = async (
+const finalizeRankingService = async (
   idRangListe: number,
 ): Promise<{ approvedCount: number; rejectedCount: number }> => {
   const rankingList = await getRankingListById(idRangListe);
