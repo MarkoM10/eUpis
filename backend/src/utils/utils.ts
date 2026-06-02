@@ -2,9 +2,7 @@ import { ApiError } from "../shared/apiError";
 
 export const normalizeSchoolYear = (value: string, fieldLabel = "Skolska godina"): string => {
   const trimmed = value.trim();
-  const match = trimmed.match(/^(\d{4})/);
-
-  if (!match) {
+  if (!/^\d{4}$/.test(trimmed)) {
     throw new ApiError(
       400,
       "Neispravna skolska godina",
@@ -12,5 +10,5 @@ export const normalizeSchoolYear = (value: string, fieldLabel = "Skolska godina"
     );
   }
 
-  return match[1];
+  return trimmed;
 };

@@ -67,7 +67,7 @@ export const listRankingLists = async (
           COALESCE(k.konkursni_rok, '') ||
           CASE
             WHEN k.godina_konkursa IS NOT NULL
-              THEN ' ' || TO_CHAR(k.godina_konkursa) || '/' || TO_CHAR(k.godina_konkursa + 1)
+              THEN ' ' || TO_CHAR(k.godina_konkursa)
             ELSE ''
           END ||
           CASE WHEN f.naziv_fakulteta IS NOT NULL THEN ' - ' || f.naziv_fakulteta ELSE '' END
@@ -93,7 +93,7 @@ export const listRankingLists = async (
               COALESCE(k.konkursni_rok, '') ||
               CASE
                 WHEN k.godina_konkursa IS NOT NULL
-                  THEN ' ' || TO_CHAR(k.godina_konkursa) || '/' || TO_CHAR(k.godina_konkursa + 1)
+                  THEN ' ' || TO_CHAR(k.godina_konkursa)
                 ELSE ''
               END ||
               CASE WHEN f.naziv_fakulteta IS NOT NULL THEN ' - ' || f.naziv_fakulteta ELSE '' END
@@ -127,7 +127,7 @@ export const getRankingListById = async (
           COALESCE(k.konkursni_rok, '') ||
           CASE
             WHEN k.godina_konkursa IS NOT NULL
-              THEN ' ' || TO_CHAR(k.godina_konkursa) || '/' || TO_CHAR(k.godina_konkursa + 1)
+              THEN ' ' || TO_CHAR(k.godina_konkursa)
             ELSE ''
           END ||
           CASE WHEN f.naziv_fakulteta IS NOT NULL THEN ' - ' || f.naziv_fakulteta ELSE '' END

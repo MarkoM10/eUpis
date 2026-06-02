@@ -81,7 +81,7 @@ export default function RankingListsPage(): ReactElement {
               <input
                 type="text"
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="npr. 2023/24"
+                placeholder="npr. 2026"
                 value={searchSchoolYear}
                 onChange={(e) => dispatch(setSearchSchoolYear(e.target.value))}
               />
