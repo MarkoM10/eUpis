@@ -2,7 +2,6 @@ import { useEffect, useState, type ReactElement } from "react";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { updateAuthSession } from "../../redux/slices/authSlice";
 import { loadFakulteti } from "../../redux/slices/prijaveSlice";
-import { ApiClientError } from "../../services/api";
 import { sessionRequest } from "../../services/authService";
 import { listActiveKonkursiRequest } from "../../services/konkursService";
 import {
@@ -154,20 +153,6 @@ const toUverenjeForm = (
   file: null,
 });
 
-const areRequiredDocumentsAttached = (
-  documents: PrijavaDocumentsRecord,
-  diplomaForm: DiplomaDocumentFormState,
-  uverenjeForm: UverenjeDocumentFormState,
-): boolean => {
-  const hasDiploma = documents.diploma.hasFile || Boolean(diplomaForm.file);
-  const hasUverenje = documents.uverenje.hasFile || Boolean(uverenjeForm.file);
-  return hasDiploma && hasUverenje;
-};
-
-const hasRequiredUploadedDocuments = (documents: PrijavaDocumentsRecord): boolean => {
-  return documents.diploma.hasFile && documents.uverenje.hasFile;
-};
-
 const buildExistingPrijavaFromPayload = (
   payload: PrijavaPayload,
   brojPrijave: number,
@@ -189,7 +174,6 @@ export default function StudentPrijavaFlowSection({
   onClearFeedback,
   onSetRequestError,
   onSetSuccessMessage,
-  onSetValidationError,
 }: StudentPrijavaFlowSectionProps): ReactElement {
   const dispatch = useAppDispatch();
   const { token, username } = useAppSelector((state) => state.auth);
@@ -207,7 +191,6 @@ export default function StudentPrijavaFlowSection({
   const [activeKonkursi, setActiveKonkursi] = useState<ActiveKonkursOption[]>([]);
   const [wizardStep, setWizardStep] = useState<1 | 2>(1);
   const [isSavingKandidat, setIsSavingKandidat] = useState(false);
-  const [isKandidatPrepared, setIsKandidatPrepared] = useState(false);
 
   const selectedKonkurs =
     form.idKonkursa && Number.isFinite(Number(form.idKonkursa))
@@ -293,7 +276,6 @@ export default function StudentPrijavaFlowSection({
       } else {
         setStudentDocumentKey(null);
         setWizardStep(1);
-        setIsKandidatPrepared(false);
       }
     } catch {
       setExistingStudentPrijava(null);
@@ -386,15 +368,6 @@ export default function StudentPrijavaFlowSection({
       key.skolskaGodina,
     );
 
-    if (!hasRequiredUploadedDocuments(documentsResponse.data)) {
-      throw new ApiClientError({
-        success: false,
-        title: "Dokumentacija nije kompletna",
-        message:
-          "Prijava ne moze biti poslata bez oba dokumenta. Potrebno je da otpremite i Diplomu i Uverenje.",
-      });
-    }
-
     setStudentDocumentKey(key);
     dispatch(
       updateAuthSession({
@@ -411,28 +384,6 @@ export default function StudentPrijavaFlowSection({
 
   const onStudentCreate = async (): Promise<void> => {
     if (!token) {
-      return;
-    }
-
-    if (!existingStudentPrijava && !isKandidatPrepared) {
-      onSetValidationError("Prvo sacuvajte podatke kandidata u koraku 1.");
-      return;
-    }
-
-    if (!areRequiredDocumentsAttached(documents, diplomaForm, uverenjeForm)) {
-      onSetValidationError(
-        "Za slanje prijave potrebno je da diploma i uverenje budu prilozene (postojeci ili novi fajlovi).",
-      );
-      return;
-    }
-
-    if (!form.idKonkursa) {
-      onSetValidationError("Izaberite konkurs pre slanja prijave.");
-      return;
-    }
-
-    if (!form.idPrograma) {
-      onSetValidationError("Izaberite program/modul iz konkursa pre slanja prijave.");
       return;
     }
 
@@ -462,7 +413,6 @@ export default function StudentPrijavaFlowSection({
     try {
       await upsertStudentKandidatRequest(token, toStudentKandidatPayload(form));
       await loadActiveKonkursi();
-      setIsKandidatPrepared(true);
       setWizardStep(2);
       onSetSuccessMessage("Podaci kandidata su uspesno sacuvani. Nastavite na korak prijave.");
     } catch (error) {

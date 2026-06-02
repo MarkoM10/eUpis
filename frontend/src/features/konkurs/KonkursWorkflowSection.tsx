@@ -8,7 +8,6 @@ import {
   listKonkursiRequest,
   saveKonkursExamScoreRequest,
 } from "../../services/konkursService";
-import { ApiClientError } from "../../services/api";
 import type { Konkurs } from "../../types/models/konkurs";
 import type { EligiblePrijavaRow, PendingEnrollmentFinalizationRow } from "../../types/models/upis";
 import { triggerFileDownload } from "../../utils/utils";
@@ -83,16 +82,6 @@ export default function KonkursWorkflowSection({
       }));
   }, [selectedProgramRows]);
 
-  const hasSelection = Boolean(selectedKonkurs && selectedProgramId);
-  const hasCandidatesInProgram = selectedProgramRows.length > 0;
-  const hasAllScoresSaved =
-    hasCandidatesInProgram && selectedProgramRows.every((row) => row.examPoints != null);
-  const hasFinalRanking =
-    hasCandidatesInProgram &&
-    selectedProgramRows.every(
-      (row) => row.rankingStatus === "Odobrena" || row.rankingStatus === "Odbijena",
-    );
-
   const loadKonkursi = async (): Promise<void> => {
     const response = await listKonkursiRequest(token);
     setKonkursi(response.data.rows);
@@ -147,17 +136,6 @@ export default function KonkursWorkflowSection({
     const key = `${row.brojPrijave}|${row.skolskaGodina}`;
     const rawPoints = scoreByPrijava[key] ?? "";
     const brojPoena = Number(rawPoints);
-
-    if (!Number.isFinite(brojPoena) || brojPoena < 0 || brojPoena > 100) {
-      onRequestError(
-        new ApiClientError({
-          success: false,
-          title: "Neispravni poeni",
-          message: "Broj poena mora biti broj izmedju 0 i 100.",
-        }),
-      );
-      return;
-    }
 
     setSavingScoreKey(key);
     onClearFeedback();
@@ -237,60 +215,16 @@ export default function KonkursWorkflowSection({
 
   const onNextStep = (): void => {
     if (wizardStep === 1) {
-      if (!hasSelection) {
-        onRequestError(
-          new ApiClientError({
-            success: false,
-            title: "Nedostaje izbor",
-            message: "Prvo izaberite konkurs i studijski program.",
-          }),
-        );
-        return;
-      }
-
       setWizardStep(2);
       return;
     }
 
     if (wizardStep === 2) {
-      if (!hasCandidatesInProgram) {
-        onRequestError(
-          new ApiClientError({
-            success: false,
-            title: "Nema prijava",
-            message: "Nema odobrenih prijava za izabrani program.",
-          }),
-        );
-        return;
-      }
-
-      if (!hasAllScoresSaved) {
-        onRequestError(
-          new ApiClientError({
-            success: false,
-            title: "Nedostaju poeni",
-            message: "Prelaz na rang listu je moguc tek kada svi kandidati imaju sacuvane poene.",
-          }),
-        );
-        return;
-      }
-
       setWizardStep(3);
       return;
     }
 
     if (wizardStep === 3) {
-      if (!hasFinalRanking) {
-        onRequestError(
-          new ApiClientError({
-            success: false,
-            title: "Rang lista nije finalizovana",
-            message: "Prvo generisite konacnu rang listu, pa tek onda predjite na finalizaciju.",
-          }),
-        );
-        return;
-      }
-
       setWizardStep(4);
     }
   };
@@ -516,9 +450,7 @@ export default function KonkursWorkflowSection({
                 onClick={() => {
                   void onGenerateFinalRanking();
                 }}
-                disabled={
-                  !selectedKonkurs || !selectedProgramId || isSubmitting || !hasAllScoresSaved
-                }
+                disabled={!selectedKonkurs || !selectedProgramId || isSubmitting}
               >
                 {isSubmitting ? "Generisanje..." : "Generisi konacnu rang listu"}
               </button>

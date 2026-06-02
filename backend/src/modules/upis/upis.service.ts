@@ -217,9 +217,6 @@ export const saveExamScoreService = async (
 ): Promise<{ idStavke: number }> => {
   const normalizedSchoolYear = normalizeSchoolYear(payload.skolskaGodina);
   const brojPoena = Number(payload.brojPoena);
-  if (!Number.isFinite(brojPoena) || brojPoena < 0 || brojPoena > 100) {
-    throw new ApiError(400, "Neispravan broj poena", "Broj poena mora biti izmedju 0 i 100.");
-  }
 
   const prijava = await findPrijavaForExam(payload.brojPrijave, normalizedSchoolYear);
   if (!prijava) {
@@ -231,25 +228,6 @@ export const saveExamScoreService = async (
       400,
       "Prijava nije povezana sa programom",
       "Nije moguce evidentirati rezultat dok prijava nema izabran studijski program.",
-    );
-  }
-
-  if (prijava.rankingStatus != null) {
-    throw new ApiError(
-      409,
-      "Rezultat ispita vec postoji",
-      "Za ovu prijavu je vec sacuvan rezultat. Dozvoljen je samo jedan pokusaj.",
-    );
-  }
-
-  if (
-    (prijava as { statusPrijave?: string }).statusPrijave &&
-    (prijava as { statusPrijave?: string }).statusPrijave !== "Odobrena"
-  ) {
-    throw new ApiError(
-      400,
-      "Prijava nije Odobrena",
-      "Rezultat ispita se moze uneti samo za prijave sa statusom Odobrena.",
     );
   }
 
@@ -293,11 +271,7 @@ export const generateRankingService = async (
   approvedCount: number;
   rejectedCount: number;
 }> => {
-  const idPrograma = ensurePositiveNumber(
-    Number(payload.idPrograma),
-    "Neispravan program",
-    "ID programa mora biti validan pozitivan broj.",
-  );
+  const idPrograma = Number(payload.idPrograma);
   const normalizedSchoolYear = normalizeSchoolYear(payload.skolskaGodina);
   const idKonkursa =
     payload.idKonkursa != null && Number.isFinite(Number(payload.idKonkursa))
@@ -310,11 +284,7 @@ export const generateRankingService = async (
     throw new ApiError(404, "Program nije pronadjen", "Nije pronadjen trazeni studijski program.");
   }
 
-  const brojMesta = ensurePositiveNumber(
-    Number(payload.brojMesta),
-    "Neispravan broj mesta",
-    "Broj dostupnih mesta za izabrani konkurs i program mora biti veci od 0.",
-  );
+  const brojMesta = Number(payload.brojMesta);
 
   const studijskiProgram = toProgramLabel(program.nazivPrograma, program.modul);
   const existingRankingList = await findRankingListByProgramAndYear(
@@ -339,23 +309,6 @@ export const generateRankingService = async (
   const programEligibleRows = eligibleRows.filter(
     (row) => row.idPrograma === idPrograma && (idKonkursa == null || row.idKonkursa === idKonkursa),
   );
-
-  if (programEligibleRows.length === 0) {
-    throw new ApiError(
-      400,
-      "Nema odobrenih prijava",
-      "Za izabrani studijski program nema odobrenih prijava za obradu.",
-    );
-  }
-
-  const missingScores = programEligibleRows.filter((row) => row.examPoints == null);
-  if (missingScores.length > 0) {
-    throw new ApiError(
-      400,
-      "Nisu uneti svi bodovi",
-      "Pre generisanja konacne rang liste potrebno je uneti bodove za sve odobrene prijave izabranog studijskog programa.",
-    );
-  }
 
   const rankingList = await ensureRankingList(
     idKonkursa ?? programEligibleRows[0]?.idKonkursa ?? null,
@@ -408,11 +361,7 @@ const finalizeRankingService = async (
     );
   }
 
-  const effectiveSeats = ensurePositiveNumber(
-    Number(rankingList.brojMesta ?? 0),
-    "Neispravan broj mesta",
-    "Broj dostupnih mesta na rang listi mora biti veci od 0.",
-  );
+  const effectiveSeats = Math.max(1, Number(rankingList.brojMesta ?? 0));
 
   const computedRanks = calculateRanks(items);
   for (const entry of computedRanks) {
@@ -482,10 +431,6 @@ export const updateRankingListStudyProgramService = async (input: {
   idRangListe: number;
   studijskiProgram: string;
 }): Promise<void> => {
-  if (!Number.isFinite(input.idRangListe) || input.idRangListe <= 0) {
-    throw new ApiError(400, "Neispravan identifikator", "ID rang liste mora biti validan.");
-  }
-
   await updateRankingListStudyProgram(input.idRangListe, input.studijskiProgram);
 };
 
@@ -493,10 +438,6 @@ export const updateRankingItemStudyProgramService = async (input: {
   idStavke: number;
   studijskiProgram: string;
 }): Promise<void> => {
-  if (!Number.isFinite(input.idStavke) || input.idStavke <= 0) {
-    throw new ApiError(400, "Neispravan identifikator", "ID stavke mora biti validan.");
-  }
-
   await updateRankingItemStudyProgram(input.idStavke, input.studijskiProgram);
 };
 
@@ -507,10 +448,6 @@ export const uploadSignedEnrollmentContractService = async (input: {
   fileSize: number;
   fileContent: Buffer;
 }): Promise<EnrollmentFinalizationRecord> => {
-  if (!input.fileContent.length) {
-    throw new ApiError(400, "Fajl nedostaje", "Potrebno je izabrati potpisani ugovor.");
-  }
-
   const latest = await ensureStudentIsApprovedForEnrollment(input.username);
 
   return upsertSignedEnrollmentContract({
@@ -560,35 +497,6 @@ export const confirmEnrollmentFinalizationService = async (input: {
   skolskaGodina: string;
   adminUserId: number;
 }): Promise<EnrollmentFinalizationRecord> => {
-  const rankingItem = await findRankingItemByPrijava(input.brojPrijave);
-  if (!rankingItem || rankingItem.status !== "Odobrena") {
-    throw new ApiError(
-      400,
-      "Upis nije odobren",
-      "Finalizacija je moguca samo za studenta koji ima status Odobrena na konacnoj rang listi.",
-    );
-  }
-
-  const finalization = await getEnrollmentFinalizationByPrijava(
-    input.brojPrijave,
-    input.skolskaGodina,
-  );
-  if (!finalization || !finalization.hasSignedContract) {
-    throw new ApiError(
-      400,
-      "Potpisani ugovor nedostaje",
-      "Pre finalizacije je neophodno da student otpremi potpisani ugovor o studiranju.",
-    );
-  }
-
-  if (finalization.statusUpisa === "UpisZavrsen" && finalization.brojIndeksa) {
-    throw new ApiError(
-      409,
-      "Upis je vec finalizovan",
-      `Student je vec upisan pod brojem indeksa ${finalization.brojIndeksa}.`,
-    );
-  }
-
   const brojIndeksa = buildGeneratedIndexNumber(input.skolskaGodina, input.brojPrijave);
 
   return confirmEnrollmentFinalization({

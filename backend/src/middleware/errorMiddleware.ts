@@ -17,14 +17,7 @@ export const errorMiddleware = (
   }
 
   const oracleDetails = extractOracleDetails(error);
+  const resolvedMessage = oracleDetails ?? "Doslo je do greske prilikom obrade zahteva.";
 
-  res
-    .status(500)
-    .json(
-      fail(
-        "Serverska greska",
-        "Doslo je do greske prilikom obrade zahteva.",
-        oracleDetails,
-      ),
-    );
+  res.status(500).json(fail("Serverska greska", resolvedMessage, oracleDetails));
 };

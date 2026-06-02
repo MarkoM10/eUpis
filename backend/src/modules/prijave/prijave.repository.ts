@@ -47,13 +47,9 @@ const mapRow = (row: PrijavaRow): PrijavaRecord => ({
   sistemskiUpdate: row.SISTEMSKI_UPDATE,
 });
 
-const resolveBrojPrijave = async (brojPrijave: number | null | undefined): Promise<number> => {
-  if (typeof brojPrijave === "number" && Number.isFinite(brojPrijave) && brojPrijave > 0) {
-    return brojPrijave;
-  }
-
+const resolveBrojPrijave = async (): Promise<number> => {
   const result = await executeSql<{ NEXT_BROJ_PRIJAVE: number }>(
-    "SELECT NVL(MAX(p.broj_prijave), 0) + 1 AS next_broj_prijave FROM Prijava p",
+    "SELECT PRIJAVA_BROJ_PRIJAVE_SEQ.NEXTVAL AS next_broj_prijave FROM dual",
   );
 
   return result.rows?.[0]?.NEXT_BROJ_PRIJAVE ?? 1;
@@ -211,23 +207,7 @@ export const getPrijavaByKey = async (key: PrijavaKey): Promise<PrijavaRecord> =
 };
 
 export const insertPrijava = async (input: PrijavaMutationInput): Promise<PrijavaKey> => {
-  if (!input.skolskaGodina) {
-    throw new ApiError(
-      400,
-      "Nedostaje skolska godina",
-      "Za kreiranje prijave potrebno je uneti skolsku godinu.",
-    );
-  }
-
-  if (!input.jmbg) {
-    throw new ApiError(
-      400,
-      "Nedostaje JMBG kandidata",
-      "Za kreiranje prijave potrebno je uneti JMBG kandidata.",
-    );
-  }
-
-  const brojPrijave = await resolveBrojPrijave(input.brojPrijave);
+  const brojPrijave = await resolveBrojPrijave();
 
   await executeSql(
     `

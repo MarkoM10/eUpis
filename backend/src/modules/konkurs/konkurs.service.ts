@@ -11,7 +11,6 @@ import {
   getNextKonkursStavkaId,
   insertKonkurs,
   insertKonkursStavka,
-  isProgramInFakultet,
   isProgramInKonkurs,
   listActiveKonkursiWithStavke,
   listKonkursiWithStavke,
@@ -32,11 +31,7 @@ const normalizeStatus = (status: string | undefined): KonkursStatus => {
     return status;
   }
 
-  throw new ApiError(
-    400,
-    "Neispravan status konkursa",
-    "Dozvoljene vrednosti su: Nacrt, Aktivan, Zatvoren, Arhiviran.",
-  );
+  return "Nacrt";
 };
 
 const toLegacyStatusKonkursa = (status: KonkursStatus): "Aktivan" | "Zatvoren" | null => {
@@ -69,11 +64,7 @@ const extractLegacyGodinaKonkursa = (skolskaGodina: string): number => {
   const match = normalized.match(/^(\d{4})/);
 
   if (!match) {
-    throw new ApiError(
-      400,
-      "Neispravna skolska godina",
-      "Skolska godina mora poceti cetvorocifrenom godinom (npr. 2025/2026).",
-    );
+    return new Date().getFullYear();
   }
 
   return Number(match[1]);
@@ -164,41 +155,6 @@ export const createKonkursService = async (
   payload: CreateKonkursInput,
   actorUserId?: number,
 ): Promise<{ idKonkursa: number }> => {
-  if (!Number.isFinite(payload.idFakulteta) || payload.idFakulteta <= 0) {
-    throw new ApiError(
-      400,
-      "Nedostaje fakultet",
-      "Za kreiranje konkursa potrebno je izabrati fakultet.",
-    );
-  }
-
-  if (!payload.skolskaGodina?.trim()) {
-    throw new ApiError(400, "Nedostaje skolska godina", "Skolska godina je obavezna.");
-  }
-
-  if (!payload.konkursniRok?.trim()) {
-    throw new ApiError(400, "Nedostaje konkursni rok", "Konkursni rok je obavezan.");
-  }
-
-  if (!payload.datumOd || !payload.datumDo) {
-    throw new ApiError(400, "Nedostaju datumi konkursa", "Datum od i datum do su obavezni.");
-  }
-
-  const datumOd = parseIsoDateStrict(payload.datumOd, "Datum od");
-  const datumDo = parseIsoDateStrict(payload.datumDo, "Datum do");
-
-  if (datumOd.getTime() > datumDo.getTime()) {
-    throw new ApiError(400, "Neispravan period konkursa", "Datum od ne moze biti posle datuma do.");
-  }
-
-  if (!Array.isArray(payload.stavke) || payload.stavke.length === 0) {
-    throw new ApiError(
-      400,
-      "Nedostaju stavke konkursa",
-      "Potrebno je uneti bar jedan program/modul.",
-    );
-  }
-
   const status = normalizeStatus(payload.status);
   const godinaKonkursaLegacy = extractLegacyGodinaKonkursa(payload.skolskaGodina);
   const statusKonkursaLegacy = toLegacyStatusKonkursa(status);
@@ -218,43 +174,7 @@ export const createKonkursService = async (
     createdByUserId: actorUserId ?? null,
   });
 
-  const seenPrograms = new Set<number>();
-
   for (const stavka of payload.stavke) {
-    if (!Number.isFinite(stavka.idPrograma) || stavka.idPrograma <= 0) {
-      throw new ApiError(400, "Neispravan program", "idPrograma mora biti pozitivan broj.");
-    }
-
-    if (!Number.isFinite(stavka.brojDostupnihMesta) || stavka.brojDostupnihMesta < 0) {
-      throw new ApiError(
-        400,
-        "Neispravan broj mesta",
-        "brojDostupnihMesta mora biti broj veci ili jednak nuli.",
-      );
-    }
-
-    if (seenPrograms.has(stavka.idPrograma)) {
-      throw new ApiError(
-        400,
-        "Duplikat programa",
-        "Jedan studijski program/modul moze biti unet samo jednom u okviru konkursa.",
-      );
-    }
-
-    seenPrograms.add(stavka.idPrograma);
-
-    const belongsToFakultet = await isProgramInFakultet(
-      stavka.idPrograma,
-      Math.trunc(payload.idFakulteta),
-    );
-    if (!belongsToFakultet) {
-      throw new ApiError(
-        400,
-        "Program nije deo fakulteta",
-        "Izabrani studijski program/modul ne pripada odabranom fakultetu.",
-      );
-    }
-
     const idStavkeKonkursa = await getNextKonkursStavkaId();
     await insertKonkursStavka({
       idStavkeKonkursa,

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState, type ReactElement } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { OracleMessageCard } from "../../components/feedback/OracleMessageCard";
 import { useAppSelector } from "../../redux/hooks";
 import { toApiClientError } from "../../services/api";
 import { listKonkursiRequest } from "../../services/konkursService";
 import {
+  deletePrijavaRequest,
   downloadPrijavaDocumentRequest,
   getPrijavaDocumentsRequest,
   getPrijavaRequest,
@@ -75,6 +76,7 @@ const buildProgramLabel = (
 ): string => `${nazivPrograma ?? `Program ${idPrograma}`}${modul ? ` | ${modul}` : ""}`;
 
 export default function AdminPrijavaDetailsPage(): ReactElement {
+  const navigate = useNavigate();
   const { brojPrijave, skolskaGodina } = useParams<{
     brojPrijave: string;
     skolskaGodina: string;
@@ -92,6 +94,7 @@ export default function AdminPrijavaDetailsPage(): ReactElement {
   const [isLoading, setIsLoading] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isSavingStatus, setIsSavingStatus] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [downloadingDocumentKey, setDownloadingDocumentKey] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -250,6 +253,32 @@ export default function AdminPrijavaDetailsPage(): ReactElement {
     }
   };
 
+  const onDeletePrijava = async (): Promise<void> => {
+    if (!token || !prijava) {
+      return;
+    }
+
+    const confirmDelete = window.confirm(
+      `Da li ste sigurni da zelite da obrisete prijavu #${prijava.brojPrijave}/${prijava.skolskaGodina}?`,
+    );
+
+    if (!confirmDelete) {
+      return;
+    }
+
+    setIsDeleting(true);
+    clearFeedback();
+
+    try {
+      await deletePrijavaRequest(token, prijava.brojPrijave, prijava.skolskaGodina);
+      navigate("/prijave");
+    } catch (error) {
+      setRequestError(error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const isInvalidParams = !Number.isFinite(prijavaBroj) || prijavaBroj <= 0 || !godina;
 
   return (
@@ -372,6 +401,16 @@ export default function AdminPrijavaDetailsPage(): ReactElement {
               disabled={isSavingEdit || !prijava}
             >
               {isSavingEdit ? "Čuvanje..." : "Sačuvaj izmene"}
+            </button>
+            <button
+              type="button"
+              className="rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+              onClick={() => {
+                void onDeletePrijava();
+              }}
+              disabled={isDeleting || !prijava}
+            >
+              {isDeleting ? "Brisanje..." : "Obrisi prijavu"}
             </button>
           </div>
         </section>

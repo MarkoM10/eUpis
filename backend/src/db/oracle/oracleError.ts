@@ -12,15 +12,5 @@ export const extractOracleDetails = (error: unknown): string | undefined => {
     return undefined;
   }
 
-  const parts: string[] = [error.message];
-
-  if (typeof error.errorNum === "number") {
-    parts.push(`errorNum=${error.errorNum}`);
-  }
-
-  if (typeof error.offset === "number") {
-    parts.push(`offset=${error.offset}`);
-  }
-
-  return parts.join(" | ");
+  return error.message;
 };

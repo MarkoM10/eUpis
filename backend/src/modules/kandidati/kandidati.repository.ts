@@ -278,9 +278,7 @@ export const deleteKandidat = async (jmbg: string): Promise<void> => {
   } catch (error) {
     try {
       await connection.rollback();
-    } catch {
-      // Ignore rollback errors and bubble up the original failure.
-    }
+    } catch {}
 
     throw error;
   } finally {
