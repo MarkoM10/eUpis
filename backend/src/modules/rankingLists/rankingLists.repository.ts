@@ -65,7 +65,11 @@ export const listRankingLists = async (
         kr.id_konkursa,
         TRIM(
           COALESCE(k.konkursni_rok, '') ||
-          CASE WHEN k.skolska_godina IS NOT NULL THEN ' ' || k.skolska_godina ELSE '' END ||
+          CASE
+            WHEN k.godina_konkursa IS NOT NULL
+              THEN ' ' || TO_CHAR(k.godina_konkursa) || '/' || TO_CHAR(k.godina_konkursa + 1)
+            ELSE ''
+          END ||
           CASE WHEN f.naziv_fakulteta IS NOT NULL THEN ' - ' || f.naziv_fakulteta ELSE '' END
         ) AS naziv_konkursa,
         kr.id_programa,
@@ -87,7 +91,11 @@ export const listRankingLists = async (
           OR LOWER(
             TRIM(
               COALESCE(k.konkursni_rok, '') ||
-              CASE WHEN k.skolska_godina IS NOT NULL THEN ' ' || k.skolska_godina ELSE '' END ||
+              CASE
+                WHEN k.godina_konkursa IS NOT NULL
+                  THEN ' ' || TO_CHAR(k.godina_konkursa) || '/' || TO_CHAR(k.godina_konkursa + 1)
+                ELSE ''
+              END ||
               CASE WHEN f.naziv_fakulteta IS NOT NULL THEN ' - ' || f.naziv_fakulteta ELSE '' END
             )
           ) LIKE '%' || LOWER(:nazivKonkursa) || '%'
@@ -117,7 +125,11 @@ export const getRankingListById = async (
         kr.id_konkursa,
         TRIM(
           COALESCE(k.konkursni_rok, '') ||
-          CASE WHEN k.skolska_godina IS NOT NULL THEN ' ' || k.skolska_godina ELSE '' END ||
+          CASE
+            WHEN k.godina_konkursa IS NOT NULL
+              THEN ' ' || TO_CHAR(k.godina_konkursa) || '/' || TO_CHAR(k.godina_konkursa + 1)
+            ELSE ''
+          END ||
           CASE WHEN f.naziv_fakulteta IS NOT NULL THEN ' - ' || f.naziv_fakulteta ELSE '' END
         ) AS naziv_konkursa,
         kr.id_programa,

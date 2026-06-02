@@ -67,7 +67,7 @@ const toUpdatePrijavaPayload = (form: AdminPrijavaEditForm): PrijavaPayload => (
 });
 
 const buildKonkursLabel = (konkurs: Konkurs): string =>
-  `#${konkurs.idKonkursa} | ${konkurs.skolskaGodina} | ${konkurs.konkursniRok} | ${konkurs.nazivFakulteta ?? "Fakultet"}`;
+  `#${konkurs.idKonkursa} | ${konkurs.godinaKonkursa} | ${konkurs.konkursniRok} | ${konkurs.nazivFakulteta ?? "Fakultet"}`;
 
 const buildProgramLabel = (
   nazivPrograma: string | null,

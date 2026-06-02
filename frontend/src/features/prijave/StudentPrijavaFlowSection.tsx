@@ -170,6 +170,8 @@ const buildExistingPrijavaFromPayload = (
   sistemskiUpdate: null,
 });
 
+const schoolYearFromKonkursYear = (godinaKonkursa: number): string => String(godinaKonkursa);
+
 export default function StudentPrijavaFlowSection({
   onClearFeedback,
   onSetRequestError,
@@ -446,7 +448,9 @@ export default function StudentPrijavaFlowSection({
         ...prev,
         idKonkursa: value,
         idPrograma: "",
-        skolskaGodina: konkurs?.skolskaGodina ?? prev.skolskaGodina,
+        skolskaGodina: konkurs
+          ? schoolYearFromKonkursYear(konkurs.godinaKonkursa)
+          : prev.skolskaGodina,
         konkursniRok: konkurs?.konkursniRok ?? prev.konkursniRok,
       }));
       return;

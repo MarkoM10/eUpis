@@ -162,7 +162,7 @@ export default function StudentNoPrijavaSection({
                 </option>
                 {activeKonkursi.map((konkurs) => (
                   <option key={konkurs.idKonkursa} value={String(konkurs.idKonkursa)}>
-                    #{konkurs.idKonkursa} | {konkurs.skolskaGodina} | {konkurs.konkursniRok} |{" "}
+                    #{konkurs.idKonkursa} | {konkurs.godinaKonkursa} | {konkurs.konkursniRok} |{" "}
                     {konkurs.nazivFakulteta ?? "Fakultet"}
                   </option>
                 ))}

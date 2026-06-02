@@ -5,22 +5,22 @@ type KonkursRow = {
   ID_KONKURSA: number;
   ID_FAKULTETA: number | null;
   NAZIV_FAKULTETA: string | null;
-  SKOLSKA_GODINA: string;
+  GODINA_KONKURSA: number;
   KONKURSNI_ROK: string;
   DATUM_OD: Date;
   DATUM_DO: Date;
-  STATUS: KonkursStatus;
+  STATUS_KONKURSA: string | null;
 };
 
 type KonkursWithStavkaRow = {
   ID_KONKURSA: number;
   ID_FAKULTETA: number | null;
   NAZIV_FAKULTETA: string | null;
-  SKOLSKA_GODINA: string;
+  GODINA_KONKURSA: number;
   KONKURSNI_ROK: string;
   DATUM_OD: Date;
   DATUM_DO: Date;
-  STATUS: KonkursStatus;
+  STATUS_KONKURSA: string | null;
   ID_STAVKE_KONKURSA: number | null;
   ID_PROGRAMA: number | null;
   NAZIV_PROGRAMA: string | null;
@@ -55,14 +55,12 @@ export const getNextKonkursStavkaId = async (): Promise<number> => {
 export const insertKonkurs = async (input: {
   idKonkursa: number;
   idFakulteta: number;
-  skolskaGodina: string;
-  godinaKonkursaLegacy: number;
-  rokZaPrijavuLegacy: string;
-  statusKonkursaLegacy: "Aktivan" | "Zatvoren" | null;
+  godinaKonkursa: number;
+  rokZaPrijavu: string;
+  statusKonkursa: KonkursStatus;
   konkursniRok: string;
   datumOd: string;
   datumDo: string;
-  status: KonkursStatus;
   createdByUserId: number | null;
 }): Promise<void> => {
   await executeSql(
@@ -74,26 +72,22 @@ export const insertKonkurs = async (input: {
         status_konkursa,
         id_konkursa,
         id_fakulteta,
-        skolska_godina,
         konkursni_rok,
         datum_od,
         datum_do,
-        status,
         created_by,
         created_at
       )
       VALUES (
         :idKonkursa,
-        :godinaKonkursaLegacy,
-        TO_DATE(:rokZaPrijavuLegacy, 'YYYY-MM-DD'),
-        :statusKonkursaLegacy,
+        :godinaKonkursa,
+        TO_DATE(:rokZaPrijavu, 'YYYY-MM-DD'),
+        :statusKonkursa,
         :idKonkursa,
         :idFakulteta,
-        :skolskaGodina,
         :konkursniRok,
         TO_DATE(:datumOd, 'YYYY-MM-DD'),
         TO_DATE(:datumDo, 'YYYY-MM-DD'),
-        :status,
         :createdByUserId,
         SYSDATE
       )
@@ -101,14 +95,12 @@ export const insertKonkurs = async (input: {
     {
       idKonkursa: input.idKonkursa,
       idFakulteta: input.idFakulteta,
-      skolskaGodina: input.skolskaGodina,
-      godinaKonkursaLegacy: input.godinaKonkursaLegacy,
-      rokZaPrijavuLegacy: input.rokZaPrijavuLegacy,
-      statusKonkursaLegacy: input.statusKonkursaLegacy,
+      godinaKonkursa: input.godinaKonkursa,
+      rokZaPrijavu: input.rokZaPrijavu,
+      statusKonkursa: input.statusKonkursa,
       konkursniRok: input.konkursniRok,
       datumOd: input.datumOd,
       datumDo: input.datumDo,
-      status: input.status,
       createdByUserId: input.createdByUserId,
     },
   );
@@ -151,11 +143,11 @@ export const listKonkursiWithStavke = async (): Promise<KonkursWithStavkaRow[]> 
         k.id_konkursa,
         k.id_fakulteta,
         f.naziv_fakulteta,
-        k.skolska_godina,
+        k.godina_konkursa,
         k.konkursni_rok,
         k.datum_od,
         k.datum_do,
-        k.status,
+        k.status_konkursa,
         s.id_stavke_konkursa,
         s.id_programa,
         sp.naziv_programa,
@@ -179,11 +171,11 @@ export const listActiveKonkursiWithStavke = async (): Promise<KonkursWithStavkaR
         k.id_konkursa,
         k.id_fakulteta,
         f.naziv_fakulteta,
-        k.skolska_godina,
+        k.godina_konkursa,
         k.konkursni_rok,
         k.datum_od,
         k.datum_do,
-        k.status,
+        k.status_konkursa,
         s.id_stavke_konkursa,
         s.id_programa,
         sp.naziv_programa,
@@ -193,7 +185,7 @@ export const listActiveKonkursiWithStavke = async (): Promise<KonkursWithStavkaR
       LEFT JOIN Fakultet f ON f.id_fakulteta = k.id_fakulteta
       JOIN KonkursStavka s ON s.id_konkursa = k.id_konkursa
       LEFT JOIN StudijskiProgram_VIEW sp ON sp.id_programa = s.id_programa
-      WHERE k.status = 'Aktivan'
+      WHERE k.status_konkursa = 'Aktivan'
         AND TRUNC(SYSDATE) BETWEEN TRUNC(k.datum_od) AND TRUNC(k.datum_do)
       ORDER BY k.datum_od DESC, k.id_konkursa DESC, s.id_stavke_konkursa ASC
     `,
@@ -209,11 +201,11 @@ export const findKonkursById = async (idKonkursa: number): Promise<KonkursRow | 
         k.id_konkursa,
         k.id_fakulteta,
         f.naziv_fakulteta,
-        k.skolska_godina,
+        k.godina_konkursa,
         k.konkursni_rok,
         k.datum_od,
         k.datum_do,
-        k.status
+        k.status_konkursa
       FROM KonkursZaMasterStudije k
       LEFT JOIN Fakultet f ON f.id_fakulteta = k.id_fakulteta
       WHERE k.id_konkursa = :idKonkursa
@@ -267,20 +259,17 @@ export const isProgramInFakultet = async (
 
 export const updateKonkursStatus = async (
   idKonkursa: number,
-  status: KonkursStatus,
-  legacyStatus: "Aktivan" | "Zatvoren" | null,
+  statusKonkursa: KonkursStatus,
 ): Promise<void> => {
   await executeSql(
     `
       UPDATE KonkursZaMasterStudije
-      SET status = :status,
-          status_konkursa = :legacyStatus
+      SET status_konkursa = :statusKonkursa
       WHERE id_konkursa = :idKonkursa
     `,
     {
       idKonkursa,
-      status,
-      legacyStatus,
+      statusKonkursa,
     },
   );
 };

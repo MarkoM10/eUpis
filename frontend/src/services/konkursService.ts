@@ -102,7 +102,7 @@ export const createKonkursRequest = async (
   token: string,
   payload: {
     idFakulteta: number;
-    skolskaGodina: string;
+    godinaKonkursa: number;
     konkursniRok: string;
     datumOd: string;
     datumDo: string;
@@ -140,14 +140,14 @@ export const updateKonkursStatusRequest = async (
 export const listKonkursEligiblePrijaveRequest = async (
   token: string,
   idKonkursa: number,
-  skolskaGodina?: string,
+  godinaKonkursa?: number,
 ): Promise<ApiSuccess<{ rows: EligiblePrijavaRow[] }>> => {
   const response = await axios.get<ApiSuccess<{ rows: EligiblePrijavaRow[] }>>(
     buildApiUrl(`/konkursi/${idKonkursa}/prijave`),
     {
       headers: authHeaders(token),
       params: {
-        skolskaGodina: skolskaGodina || undefined,
+        godinaKonkursa: godinaKonkursa ?? undefined,
       },
     },
   );
@@ -158,7 +158,7 @@ export const listKonkursEligiblePrijaveRequest = async (
 export const listKonkursRankingListsRequest = async (
   token: string,
   idKonkursa: number,
-  params: { idPrograma?: number; skolskaGodina?: string } = {},
+  params: { idPrograma?: number; godinaKonkursa?: number } = {},
 ): Promise<ApiSuccess<{ rows: RankingListSummary[] }>> => {
   const response = await axios.get<ApiSuccess<{ rows: RankingListSummary[] }>>(
     buildApiUrl(`/konkursi/${idKonkursa}/rang-liste`),
@@ -222,14 +222,14 @@ export const generateKonkursFinalRankingRequest = async (
 export const listKonkursPendingFinalizationsRequest = async (
   token: string,
   idKonkursa: number,
-  skolskaGodina?: string,
+  godinaKonkursa?: number,
 ): Promise<ApiSuccess<{ rows: PendingEnrollmentFinalizationRow[] }>> => {
   const response = await axios.get<ApiSuccess<{ rows: PendingEnrollmentFinalizationRow[] }>>(
     buildApiUrl(`/konkursi/${idKonkursa}/finalizacija/pending`),
     {
       headers: authHeaders(token),
       params: {
-        skolskaGodina: skolskaGodina || undefined,
+        godinaKonkursa: godinaKonkursa ?? undefined,
       },
     },
   );

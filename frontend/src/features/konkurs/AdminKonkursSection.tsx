@@ -10,7 +10,6 @@ import { listStudyProgramsRequest } from "../../services/studyProgramService";
 import type { Konkurs, KonkursStatus } from "../../types/models/konkurs";
 import type { FakultetOption } from "../../types/models/fakultet";
 import type { StudyProgramOption } from "../../types/models/upis";
-import { getCurrentYearString } from "../../utils/utils";
 
 interface AdminKonkursSectionProps {
   token: string;
@@ -42,7 +41,7 @@ export default function AdminKonkursSection({
   const [isCreating, setIsCreating] = useState(false);
   const [statusSavingId, setStatusSavingId] = useState<number | null>(null);
 
-  const [skolskaGodina, setSkolskaGodina] = useState(getCurrentYearString());
+  const [godinaKonkursa, setGodinaKonkursa] = useState<number>(new Date().getFullYear());
   const [selectedFakultetId, setSelectedFakultetId] = useState("");
   const [konkursniRok, setKonkursniRok] = useState("Septembar");
   const [datumOd, setDatumOd] = useState("");
@@ -144,7 +143,7 @@ export default function AdminKonkursSection({
     try {
       await createKonkursRequest(token, {
         idFakulteta: Number(selectedFakultetId),
-        skolskaGodina,
+        godinaKonkursa,
         konkursniRok,
         datumOd,
         datumDo,
@@ -216,10 +215,11 @@ export default function AdminKonkursSection({
           ))}
         </select>
         <input
+          type="number"
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Skolska godina"
-          value={skolskaGodina}
-          onChange={(event) => setSkolskaGodina(event.target.value)}
+          placeholder="Godina konkursa"
+          value={String(godinaKonkursa)}
+          onChange={(event) => setGodinaKonkursa(Number(event.target.value))}
         />
         <input
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -346,7 +346,7 @@ export default function AdminKonkursSection({
                   className="border-b border-slate-200 odd:bg-white even:bg-slate-50 hover:bg-slate-50"
                 >
                   <td className="px-4 py-3 text-slate-700">
-                    #{konkurs.idKonkursa} | {konkurs.skolskaGodina} | {konkurs.konkursniRok}
+                    #{konkurs.idKonkursa} | {konkurs.godinaKonkursa} | {konkurs.konkursniRok}
                   </td>
                   <td className="px-4 py-3 text-slate-700">{konkurs.nazivFakulteta ?? "-"}</td>
                   <td className="px-4 py-3 text-slate-700">

@@ -34,18 +34,6 @@ const normalizeStatus = (status: string | undefined): KonkursStatus => {
   return "Nacrt";
 };
 
-const toLegacyStatusKonkursa = (status: KonkursStatus): "Aktivan" | "Zatvoren" | null => {
-  if (status === "Aktivan") {
-    return "Aktivan";
-  }
-
-  if (status === "Zatvoren") {
-    return "Zatvoren";
-  }
-
-  return null;
-};
-
 const parseIsoDateStrict = (value: string, fieldLabel: string): Date => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     throw new ApiError(400, "Neispravan datum", `${fieldLabel} mora biti u formatu YYYY-MM-DD.`);
@@ -59,16 +47,7 @@ const parseIsoDateStrict = (value: string, fieldLabel: string): Date => {
   return date;
 };
 
-const extractLegacyGodinaKonkursa = (skolskaGodina: string): number => {
-  const normalized = skolskaGodina.trim();
-  const match = normalized.match(/^(\d{4})/);
-
-  if (!match) {
-    return new Date().getFullYear();
-  }
-
-  return Number(match[1]);
-};
+const toSchoolYearLabel = (godinaKonkursa: number): string => String(godinaKonkursa);
 
 const mapRowsToKonkursi = (
   rows: Awaited<ReturnType<typeof listKonkursiWithStavke>>,
@@ -83,11 +62,11 @@ const mapRowsToKonkursi = (
         idKonkursa: row.ID_KONKURSA,
         idFakulteta: row.ID_FAKULTETA,
         nazivFakulteta: row.NAZIV_FAKULTETA,
-        skolskaGodina: row.SKOLSKA_GODINA,
+        godinaKonkursa: row.GODINA_KONKURSA,
         konkursniRok: row.KONKURSNI_ROK,
         datumOd: row.DATUM_OD.toISOString().slice(0, 10),
         datumDo: row.DATUM_DO.toISOString().slice(0, 10),
-        status: row.STATUS,
+        status: normalizeStatus(row.STATUS_KONKURSA ?? undefined),
         stavke:
           row.ID_STAVKE_KONKURSA == null ||
           row.ID_PROGRAMA == null ||
@@ -137,7 +116,7 @@ export const listActiveKonkursiService = async (): Promise<ActiveKonkursOption[]
     idKonkursa: k.idKonkursa,
     idFakulteta: k.idFakulteta,
     nazivFakulteta: k.nazivFakulteta,
-    skolskaGodina: k.skolskaGodina,
+    godinaKonkursa: k.godinaKonkursa,
     konkursniRok: k.konkursniRok,
     datumOd: k.datumOd,
     datumDo: k.datumDo,
@@ -155,22 +134,24 @@ export const createKonkursService = async (
   payload: CreateKonkursInput,
   actorUserId?: number,
 ): Promise<{ idKonkursa: number }> => {
-  const status = normalizeStatus(payload.status);
-  const godinaKonkursaLegacy = extractLegacyGodinaKonkursa(payload.skolskaGodina);
-  const statusKonkursaLegacy = toLegacyStatusKonkursa(status);
+  const statusKonkursa = normalizeStatus(payload.status);
+  const godinaKonkursa = Math.trunc(payload.godinaKonkursa);
+
+  if (!Number.isFinite(godinaKonkursa) || godinaKonkursa < 1900 || godinaKonkursa > 3000) {
+    throw new ApiError(400, "Neispravna godina konkursa", "Godina konkursa mora biti broj.");
+  }
+
   const idKonkursa = await getNextKonkursId();
 
   await insertKonkurs({
     idKonkursa,
     idFakulteta: Math.trunc(payload.idFakulteta),
-    skolskaGodina: payload.skolskaGodina.trim(),
-    godinaKonkursaLegacy,
-    rokZaPrijavuLegacy: payload.datumDo,
-    statusKonkursaLegacy,
+    godinaKonkursa,
+    rokZaPrijavu: payload.datumDo,
+    statusKonkursa,
     konkursniRok: payload.konkursniRok.trim(),
     datumOd: payload.datumOd.trim(),
     datumDo: payload.datumDo.trim(),
-    status,
     createdByUserId: actorUserId ?? null,
   });
 
@@ -198,7 +179,7 @@ export const updateKonkursStatusService = async (
     throw new ApiError(404, "Konkurs nije pronadjen", "Ne postoji trazeni konkurs.");
   }
 
-  await updateKonkursStatus(idKonkursa, normalized, toLegacyStatusKonkursa(normalized));
+  await updateKonkursStatus(idKonkursa, normalized);
 };
 
 export const validateKonkursForPrijavaService = async (
@@ -211,7 +192,7 @@ export const validateKonkursForPrijavaService = async (
     throw new ApiError(400, "Konkurs nije pronadjen", "Izabrani konkurs ne postoji.");
   }
 
-  if (konkurs.STATUS !== "Aktivan") {
+  if (normalizeStatus(konkurs.STATUS_KONKURSA ?? undefined) !== "Aktivan") {
     throw new ApiError(
       400,
       "Konkurs nije aktivan",
@@ -241,7 +222,7 @@ export const validateKonkursForPrijavaService = async (
   }
 
   return {
-    skolskaGodina: konkurs.SKOLSKA_GODINA,
+    skolskaGodina: toSchoolYearLabel(konkurs.GODINA_KONKURSA),
     konkursniRok: konkurs.KONKURSNI_ROK,
   };
 };

@@ -19,6 +19,8 @@ interface KonkursWorkflowSectionProps {
   onClearFeedback: () => void;
 }
 
+const schoolYearFromKonkursYear = (godinaKonkursa: number): string => String(godinaKonkursa);
+
 export default function KonkursWorkflowSection({
   token,
   onRequestError,
@@ -250,7 +252,7 @@ export default function KonkursWorkflowSection({
     try {
       const result = await generateKonkursFinalRankingRequest(token, selectedKonkurs.idKonkursa, {
         idPrograma: Number(selectedProgramId),
-        skolskaGodina: selectedKonkurs.skolskaGodina,
+        skolskaGodina: schoolYearFromKonkursYear(selectedKonkurs.godinaKonkursa),
         brojMesta: selectedProgramSeats,
       });
 
@@ -321,7 +323,7 @@ export default function KonkursWorkflowSection({
                 <option value="">Izaberite konkurs</option>
                 {konkursi.map((konkurs) => (
                   <option key={konkurs.idKonkursa} value={String(konkurs.idKonkursa)}>
-                    #{konkurs.idKonkursa} | {konkurs.skolskaGodina} | {konkurs.konkursniRok}
+                    #{konkurs.idKonkursa} | {konkurs.godinaKonkursa} | {konkurs.konkursniRok}
                   </option>
                 ))}
               </select>

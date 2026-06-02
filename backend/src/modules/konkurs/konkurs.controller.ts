@@ -19,6 +19,28 @@ import {
 } from "../upis/upis.service";
 import type { GenerateRankingInput, SaveExamScoreInput } from "../../types/modules/upis";
 
+const parseGodinaKonkursa = (value: unknown): number | undefined => {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (typeof raw !== "string" || !raw.trim().length) {
+    return undefined;
+  }
+
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    return undefined;
+  }
+
+  return Math.trunc(parsed);
+};
+
+const toSkolskaGodinaFromKonkursYear = (godinaKonkursa: number | undefined): string | undefined => {
+  if (godinaKonkursa == null || !Number.isFinite(godinaKonkursa)) {
+    return undefined;
+  }
+
+  return String(godinaKonkursa);
+};
+
 export const listKonkursiHandler = async (
   _req: Request,
   res: Response,
@@ -80,10 +102,8 @@ export const listKonkursEligiblePrijaveHandler = async (
 ): Promise<void> => {
   try {
     const idKonkursa = Number(req.params.idKonkursa);
-    const skolskaGodinaRaw = Array.isArray(req.query.skolskaGodina)
-      ? req.query.skolskaGodina[0]
-      : req.query.skolskaGodina;
-    const skolskaGodina = typeof skolskaGodinaRaw === "string" ? skolskaGodinaRaw : undefined;
+    const godinaKonkursa = parseGodinaKonkursa(req.query.godinaKonkursa);
+    const skolskaGodina = toSkolskaGodinaFromKonkursYear(godinaKonkursa);
 
     const rows = await listEligiblePrijaveByKonkursService(idKonkursa, skolskaGodina);
     res.json(ok("Prijave za konkurs su uspesno ucitane.", { rows }));
@@ -121,9 +141,7 @@ export const listKonkursRankingListsHandler = async (
     const idProgramaRaw = Array.isArray(req.query.idPrograma)
       ? req.query.idPrograma[0]
       : req.query.idPrograma;
-    const skolskaGodinaRaw = Array.isArray(req.query.skolskaGodina)
-      ? req.query.skolskaGodina[0]
-      : req.query.skolskaGodina;
+    const godinaKonkursa = parseGodinaKonkursa(req.query.godinaKonkursa);
 
     const idPrograma =
       typeof idProgramaRaw === "string" && idProgramaRaw.trim().length > 0
@@ -133,7 +151,7 @@ export const listKonkursRankingListsHandler = async (
     const rows = await listRankingListsService(
       idKonkursa,
       Number.isFinite(idPrograma) ? idPrograma : undefined,
-      typeof skolskaGodinaRaw === "string" ? skolskaGodinaRaw : undefined,
+      toSkolskaGodinaFromKonkursYear(godinaKonkursa),
     );
 
     res.json(ok("Rang liste za konkurs su uspesno ucitane.", { rows }));
@@ -188,12 +206,10 @@ export const listKonkursPendingFinalizationsHandler = async (
 ): Promise<void> => {
   try {
     const idKonkursa = Number(req.params.idKonkursa);
-    const skolskaGodinaRaw = Array.isArray(req.query.skolskaGodina)
-      ? req.query.skolskaGodina[0]
-      : req.query.skolskaGodina;
+    const godinaKonkursa = parseGodinaKonkursa(req.query.godinaKonkursa);
 
     const rows = await listPendingEnrollmentFinalizationsService(
-      typeof skolskaGodinaRaw === "string" ? skolskaGodinaRaw : undefined,
+      toSkolskaGodinaFromKonkursYear(godinaKonkursa),
       idKonkursa,
     );
 
