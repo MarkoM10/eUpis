@@ -1,40 +1,11 @@
 import { executeSql } from "../../db/oracle/execute";
 import type { KonkursStatus } from "../../types/modules/konkurs";
-
-type KonkursRow = {
-  ID_KONKURSA: number;
-  ID_FAKULTETA: number | null;
-  NAZIV_FAKULTETA: string | null;
-  GODINA_KONKURSA: number;
-  KONKURSNI_ROK: string;
-  DATUM_OD: Date;
-  DATUM_DO: Date;
-  STATUS_KONKURSA: string | null;
-};
-
-type KonkursWithStavkaRow = {
-  ID_KONKURSA: number;
-  ID_FAKULTETA: number | null;
-  NAZIV_FAKULTETA: string | null;
-  GODINA_KONKURSA: number;
-  KONKURSNI_ROK: string;
-  DATUM_OD: Date;
-  DATUM_DO: Date;
-  STATUS_KONKURSA: string | null;
-  ID_STAVKE_KONKURSA: number | null;
-  ID_PROGRAMA: number | null;
-  NAZIV_PROGRAMA: string | null;
-  MODUL: string | null;
-  BROJ_DOSTUPNIH_MESTA: number | null;
-};
-
-type NextIdRow = {
-  NEXT_ID: number;
-};
-
-type ExistsRow = {
-  CNT: number;
-};
+import type {
+  ExistsRow,
+  KonkursRow,
+  KonkursWithStavkaRow,
+  NextIdRow,
+} from "../../types/modules/konkursRepository";
 
 export const getNextKonkursId = async (): Promise<number> => {
   const result = await executeSql<NextIdRow>(

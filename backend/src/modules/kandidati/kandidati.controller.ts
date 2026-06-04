@@ -7,11 +7,7 @@ import {
   updateKandidatService,
 } from "./kandidati.service";
 import type { KandidatMutationInput } from "../../types/modules/kandidati";
-
-const getJmbgParam = (req: Request): string => {
-  const value = req.params.jmbg;
-  return Array.isArray(value) ? value[0] : value;
-};
+import { getJmbgParam } from "../../utils/modules/kandidati.utils";
 
 export const listKandidatiHandler = async (
   req: Request,

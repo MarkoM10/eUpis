@@ -8,13 +8,11 @@ import {
 } from "./rankingLists.repository";
 
 export const listRankingListsService = async (
-  idKonkursa?: number,
-  idPrograma?: number,
   skolskaGodina?: string,
   nazivKonkursa?: string,
   nazivPrograma?: string,
 ): Promise<RankingListSummary[]> => {
-  return listRankingLists(idKonkursa, idPrograma, skolskaGodina, nazivKonkursa, nazivPrograma);
+  return listRankingLists(skolskaGodina, nazivKonkursa, nazivPrograma);
 };
 
 export const getRankingListService = async (idRangListe: number): Promise<RankingListSummary> => {

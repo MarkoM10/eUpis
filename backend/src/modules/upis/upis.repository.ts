@@ -11,166 +11,24 @@ import type {
   RankingListSummary,
   StudyProgramOption,
 } from "../../types/modules/upis";
-
-type ProgramRow = {
-  ID_PROGRAMA: number;
-  ID_FAKULTETA: number | null;
-  NAZIV_PROGRAMA: string;
-  MODUL: string;
-  BROJ_DOSTUPNIH_MESTA: number | null;
-};
-
-type EligiblePrijavaDbRow = {
-  BROJ_PRIJAVE: number;
-  SKOLSKA_GODINA: string;
-  DATUM_PRIJAVE: Date | null;
-  ID_KONKURSA: number | null;
-  ID_PROGRAMA: number | null;
-  NAZIV_PROGRAMA: string | null;
-  MODUL: string | null;
-  STATUS_PRIJAVE: string | null;
-  JMBG: string | null;
-  IME_PREZIME: string | null;
-  BROJ_POENA: number | null;
-  RANKING_STATUS: string | null;
-  STUDIJSKI_PROGRAM: string | null;
-};
-
-type RankingListRow = {
-  ID_RANG_LISTE: number;
-  ID_KONKURSA: number | null;
-  ID_PROGRAMA: number | null;
-  NAZIV_PROGRAMA: string | null;
-  MODUL: string | null;
-  STUDIJSKI_PROGRAM: string | null;
-  SKOLSKA_GODINA: string | null;
-  BROJ_MESTA: number | null;
-  UKUPNO_KANDIDATA: number | null;
-};
-
-type RankingItemRow = {
-  ID_STAVKE: number;
-  ID_RANG_LISTE: number | null;
-  BROJ_PRIJAVE: number | null;
-  ID_PROGRAMA: number | null;
-  IME_PREZIME: string | null;
-  BROJ_POENA: number | null;
-  RANG_MESTO: number | null;
-  STATUS: string | null;
-  STUDIJSKI_PROGRAM: string | null;
-};
-
-type EnrollmentFinalizationRow = {
-  ID_UPISA: number;
-  BROJ_PRIJAVE: number;
-  SKOLSKA_GODINA: string;
-  STATUS_UPISA: "UgovorOtpremljen" | "UpisZavrsen";
-  UGOVOR_UPLOADED_AT: Date | null;
-  BROJ_INDEKSA: string | null;
-  DATUM_UPISA: Date | null;
-  HAS_SIGNED_CONTRACT: number;
-};
-
-type EnrollmentContractDownloadRow = {
-  UGOVOR_FILE_NAME: string | null;
-  UGOVOR_MIME_TYPE: string | null;
-  UGOVOR_FILE_SIZE: number | null;
-  UGOVOR_FILE_CONTENT: Buffer | null;
-};
-
-type PendingEnrollmentFinalizationDbRow = {
-  ID_UPISA: number;
-  BROJ_PRIJAVE: number;
-  SKOLSKA_GODINA: string;
-  ID_KONKURSA: number | null;
-  IME_PREZIME: string | null;
-  STUDIJSKI_PROGRAM: string | null;
-  BROJ_POENA: number | null;
-  RANG_MESTO: number | null;
-  STATUS_UPISA: "UgovorOtpremljen" | "UpisZavrsen";
-  UGOVOR_UPLOADED_AT: Date | null;
-};
-
-type EnrollmentFinalizationSummaryRow = {
-  UKUPNO_FINALIZOVANIH_UPISA: number;
-};
-
-const mapProgram = (row: ProgramRow): StudyProgramOption => ({
-  idPrograma: row.ID_PROGRAMA,
-  idFakulteta: row.ID_FAKULTETA,
-  nazivPrograma: row.NAZIV_PROGRAMA,
-  modul: row.MODUL,
-  brojDostupnihMesta: row.BROJ_DOSTUPNIH_MESTA,
-});
-
-const mapEligiblePrijava = (row: EligiblePrijavaDbRow): EligiblePrijavaRow => ({
-  brojPrijave: row.BROJ_PRIJAVE,
-  skolskaGodina: row.SKOLSKA_GODINA,
-  datumPrijave: row.DATUM_PRIJAVE ? row.DATUM_PRIJAVE.toISOString() : null,
-  idKonkursa: row.ID_KONKURSA,
-  idPrograma: row.ID_PROGRAMA,
-  nazivPrograma: row.NAZIV_PROGRAMA,
-  modul: row.MODUL,
-  jmbg: row.JMBG,
-  imePrezime: row.IME_PREZIME,
-  examPoints: row.BROJ_POENA,
-  rankingStatus: row.RANKING_STATUS,
-  studijskiProgram: row.STUDIJSKI_PROGRAM,
-  statusPrijave: row.STATUS_PRIJAVE,
-});
-
-const mapRankingList = (row: RankingListRow): RankingListSummary => ({
-  idRangListe: row.ID_RANG_LISTE,
-  idKonkursa: row.ID_KONKURSA,
-  nazivKonkursa: null,
-  idPrograma: row.ID_PROGRAMA,
-  nazivPrograma: row.NAZIV_PROGRAMA,
-  modul: row.MODUL,
-  studijskiProgram: row.STUDIJSKI_PROGRAM,
-  skolskaGodina: row.SKOLSKA_GODINA,
-  brojMesta: row.BROJ_MESTA,
-  ukupnoKandidata: row.UKUPNO_KANDIDATA,
-});
-
-const mapRankingItem = (row: RankingItemRow): RankingItem => ({
-  idStavke: row.ID_STAVKE,
-  idRangListe: row.ID_RANG_LISTE,
-  brojPrijave: row.BROJ_PRIJAVE,
-  idPrograma: row.ID_PROGRAMA,
-  imePrezime: row.IME_PREZIME,
-  brojPoena: row.BROJ_POENA,
-  rangMesto: row.RANG_MESTO,
-  status: row.STATUS,
-  studijskiProgram: row.STUDIJSKI_PROGRAM,
-});
-
-const mapEnrollmentFinalization = (
-  row: EnrollmentFinalizationRow,
-): EnrollmentFinalizationRecord => ({
-  idUpisa: row.ID_UPISA,
-  brojPrijave: row.BROJ_PRIJAVE,
-  skolskaGodina: row.SKOLSKA_GODINA,
-  statusUpisa: row.STATUS_UPISA,
-  hasSignedContract: row.HAS_SIGNED_CONTRACT === 1,
-  signedContractUploadedAt: row.UGOVOR_UPLOADED_AT ? row.UGOVOR_UPLOADED_AT.toISOString() : null,
-  brojIndeksa: row.BROJ_INDEKSA,
-  datumUpisa: row.DATUM_UPISA ? row.DATUM_UPISA.toISOString() : null,
-});
-
-const mapPendingEnrollmentFinalization = (
-  row: PendingEnrollmentFinalizationDbRow,
-): PendingEnrollmentFinalizationRow => ({
-  idUpisa: row.ID_UPISA,
-  brojPrijave: row.BROJ_PRIJAVE,
-  skolskaGodina: row.SKOLSKA_GODINA,
-  idKonkursa: row.ID_KONKURSA,
-  imePrezime: row.IME_PREZIME,
-  studijskiProgram: row.STUDIJSKI_PROGRAM,
-  brojPoena: row.BROJ_POENA,
-  rangMesto: row.RANG_MESTO,
-  statusUpisa: row.STATUS_UPISA,
-  signedContractUploadedAt: row.UGOVOR_UPLOADED_AT ? row.UGOVOR_UPLOADED_AT.toISOString() : null,
-});
+import type {
+  EligiblePrijavaDbRow,
+  EnrollmentContractDownloadRow,
+  EnrollmentFinalizationRow,
+  EnrollmentFinalizationSummaryRow,
+  PendingEnrollmentFinalizationDbRow,
+  ProgramRow,
+  RankingItemRow,
+  RankingListRow,
+} from "../../types/modules/upisRepository";
+import {
+  mapEligiblePrijavaRow,
+  mapEnrollmentFinalizationRow,
+  mapPendingEnrollmentFinalizationRow,
+  mapProgramRow,
+  mapUpisRankingItemRow,
+  mapUpisRankingListRow,
+} from "../../utils/modules/upisRepository.utils";
 
 export const listStudyPrograms = async (idFakulteta?: number): Promise<StudyProgramOption[]> => {
   const result = await executeSql<ProgramRow>(
@@ -191,7 +49,7 @@ export const listStudyPrograms = async (idFakulteta?: number): Promise<StudyProg
     },
   );
 
-  return (result.rows ?? []).map(mapProgram);
+  return (result.rows ?? []).map(mapProgramRow);
 };
 
 export const listEligiblePrijave = async (
@@ -234,7 +92,7 @@ export const listEligiblePrijave = async (
     },
   );
 
-  return (result.rows ?? []).map(mapEligiblePrijava);
+  return (result.rows ?? []).map(mapEligiblePrijavaRow);
 };
 
 export const findPrijavaForExam = async (
@@ -268,7 +126,7 @@ export const findPrijavaForExam = async (
   );
 
   const row = result.rows?.[0];
-  return row ? mapEligiblePrijava(row) : null;
+  return row ? mapEligiblePrijavaRow(row) : null;
 };
 
 export const findRankingListByProgramAndYear = async (
@@ -300,7 +158,7 @@ export const findRankingListByProgramAndYear = async (
   );
 
   const row = result.rows?.[0];
-  return row ? mapRankingList(row) : null;
+  return row ? mapUpisRankingListRow(row) : null;
 };
 
 export const createRankingList = async (
@@ -380,7 +238,7 @@ export const listRankingLists = async (
     },
   );
 
-  return (result.rows ?? []).map(mapRankingList);
+  return (result.rows ?? []).map(mapUpisRankingListRow);
 };
 
 export const getRankingListById = async (
@@ -407,7 +265,7 @@ export const getRankingListById = async (
   );
 
   const row = result.rows?.[0];
-  return row ? mapRankingList(row) : null;
+  return row ? mapUpisRankingListRow(row) : null;
 };
 
 export const listRankingItemsByListId = async (idRangListe: number): Promise<RankingItem[]> => {
@@ -430,7 +288,7 @@ export const listRankingItemsByListId = async (idRangListe: number): Promise<Ran
     { idRangListe },
   );
 
-  return (result.rows ?? []).map(mapRankingItem);
+  return (result.rows ?? []).map(mapUpisRankingItemRow);
 };
 
 export const findRankingItemByPrijava = async (
@@ -457,7 +315,7 @@ export const findRankingItemByPrijava = async (
   );
 
   const row = result.rows?.[0];
-  return row ? mapRankingItem(row) : null;
+  return row ? mapUpisRankingItemRow(row) : null;
 };
 
 export const insertExamScore = async (input: {
@@ -633,7 +491,7 @@ export const getEnrollmentFinalizationByPrijava = async (
   );
 
   const row = result.rows?.[0];
-  return row ? mapEnrollmentFinalization(row) : null;
+  return row ? mapEnrollmentFinalizationRow(row) : null;
 };
 
 export const upsertSignedEnrollmentContract = async (input: {
@@ -805,7 +663,7 @@ export const listPendingEnrollmentFinalizations = async (
     },
   );
 
-  return (result.rows ?? []).map(mapPendingEnrollmentFinalization);
+  return (result.rows ?? []).map(mapPendingEnrollmentFinalizationRow);
 };
 
 export const getEnrollmentFinalizationSummary = async (

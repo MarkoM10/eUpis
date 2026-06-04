@@ -9,116 +9,12 @@ import type {
   PrijavaDocumentType,
   PrijavaDocumentUploadInput,
 } from "../../types/modules/prijavaDocuments";
-
-type DiplomaRow = {
-  SERIJSKI_BROJ: number;
-  DATUM_IZDAVANJA: Date | null;
-  BROJ_ESPB: number | null;
-  STECENO_ZVANJE: string | null;
-  DATUM_DIPLOMIRANJA: Date | null;
-  GODINA_UPISA: number | null;
-  PROSECNA_OCENA: number | null;
-  ID_FAKULTETA: number | null;
-  REKTOR_ID: number | null;
-  DOCUMENT_FILE_NAME: string | null;
-  DOCUMENT_MIME_TYPE: string | null;
-  DOCUMENT_FILE_SIZE: number | null;
-  DOCUMENT_UPLOADED_AT: Date | null;
-  HAS_FILE: number;
-};
-
-type UverenjeRow = {
-  SERIJSKI_BROJ: number;
-  DATUM_IZDAVANJA: Date | null;
-  ID_FAKULTETA: number | null;
-  UKUPNO_ESPB: number | null;
-  PROSECNA_OCENA: number | null;
-  DOCUMENT_FILE_NAME: string | null;
-  DOCUMENT_MIME_TYPE: string | null;
-  DOCUMENT_FILE_SIZE: number | null;
-  DOCUMENT_UPLOADED_AT: Date | null;
-  HAS_FILE: number;
-};
-
-type DownloadRow = {
-  DOCUMENT_FILE_NAME: string | null;
-  DOCUMENT_MIME_TYPE: string | null;
-  DOCUMENT_FILE_SIZE: number | null;
-  DOCUMENT_FILE_CONTENT: Buffer | null;
-};
-
-const toIso = (value: Date | null): string | null => (value ? value.toISOString() : null);
-
-const emptySummary = (documentType: PrijavaDocumentType): PrijavaDocumentSummary => ({
-  documentType,
-  exists: false,
-  serialNumber: null,
-  datumIzdavanja: null,
-  idFakulteta: null,
-  fileName: null,
-  mimeType: null,
-  fileSize: null,
-  uploadedAt: null,
-  hasFile: false,
-  brojEspb: null,
-  stecenoZvanje: null,
-  datumDiplomiranja: null,
-  godinaUpisa: null,
-  prosecnaOcena: null,
-  rektorId: null,
-  ukupnoEspb: null,
-});
-
-const mapDiplomaRow = (row: DiplomaRow | undefined): PrijavaDocumentSummary => {
-  if (!row) {
-    return emptySummary("diploma");
-  }
-
-  return {
-    documentType: "diploma",
-    exists: true,
-    serialNumber: row.SERIJSKI_BROJ,
-    datumIzdavanja: toIso(row.DATUM_IZDAVANJA),
-    idFakulteta: row.ID_FAKULTETA,
-    fileName: row.DOCUMENT_FILE_NAME,
-    mimeType: row.DOCUMENT_MIME_TYPE,
-    fileSize: row.DOCUMENT_FILE_SIZE,
-    uploadedAt: toIso(row.DOCUMENT_UPLOADED_AT),
-    hasFile: row.HAS_FILE === 1,
-    brojEspb: row.BROJ_ESPB,
-    stecenoZvanje: row.STECENO_ZVANJE,
-    datumDiplomiranja: toIso(row.DATUM_DIPLOMIRANJA),
-    godinaUpisa: row.GODINA_UPISA,
-    prosecnaOcena: row.PROSECNA_OCENA,
-    rektorId: row.REKTOR_ID,
-  };
-};
-
-const mapUverenjeRow = (row: UverenjeRow | undefined): PrijavaDocumentSummary => {
-  if (!row) {
-    return emptySummary("uverenje");
-  }
-
-  return {
-    documentType: "uverenje",
-    exists: true,
-    serialNumber: row.SERIJSKI_BROJ,
-    datumIzdavanja: toIso(row.DATUM_IZDAVANJA),
-    idFakulteta: row.ID_FAKULTETA,
-    fileName: row.DOCUMENT_FILE_NAME,
-    mimeType: row.DOCUMENT_MIME_TYPE,
-    fileSize: row.DOCUMENT_FILE_SIZE,
-    uploadedAt: toIso(row.DOCUMENT_UPLOADED_AT),
-    hasFile: row.HAS_FILE === 1,
-    prosecnaOcena: row.PROSECNA_OCENA,
-    ukupnoEspb: row.UKUPNO_ESPB,
-    brojEspb: null,
-    stecenoZvanje: null,
-    datumDiplomiranja: null,
-    godinaUpisa: null,
-    rektorId: null,
-  };
-};
+import type {
+  DiplomaRow,
+  DownloadRow,
+  UverenjeRow,
+} from "../../types/modules/prijavaDocumentsRepository";
+import { mapDiplomaRow, mapUverenjeRow } from "../../utils/modules/prijavaDocuments.utils";
 
 export const getPrijavaDocuments = async (key: PrijavaKey): Promise<PrijavaDocumentsRecord> => {
   const [diplomaResult, uverenjeResult] = await Promise.all([

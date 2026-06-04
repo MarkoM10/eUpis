@@ -1,58 +1,7 @@
 import { executeSql } from "../../db/oracle/execute";
-import { ApiError } from "../../shared/apiError";
 import type { AuthLatestPrijava, KorisnikRecord, UserRole } from "../../types/modules/auth";
-
-type KorisnikRow = {
-  ID_KORISNIKA: number;
-  KORISNICKO_IME: string;
-  LOZINKA: string;
-  EMAIL: string | null;
-  ULOGA: string | null;
-};
-
-type PrijavaRow = {
-  BROJ_PRIJAVE: number;
-  DATUM_PRIJAVE: Date | null;
-  SKOLSKA_GODINA: string;
-  STATUS_PRIJAVE: string | null;
-  KONKURSNI_ROK: string | null;
-  JMBG: string | null;
-  IME_PREZIME: string | null;
-  SISTEMSKI_UPDATE: string | null;
-};
-
-const resolveRole = (value: string | null): UserRole => {
-  const normalized = (value ?? "student").trim().toLowerCase();
-
-  if (normalized === "admin") {
-    return "admin";
-  }
-
-  if (normalized === "student") {
-    return "student";
-  }
-
-  throw new ApiError(403, "Uloga korisnika nije podrzana", `Nepoznata uloga: ${value ?? "NULL"}.`);
-};
-
-const mapKorisnik = (row: KorisnikRow): KorisnikRecord => ({
-  idKorisnika: row.ID_KORISNIKA,
-  korisnickoIme: row.KORISNICKO_IME,
-  lozinka: row.LOZINKA,
-  email: row.EMAIL,
-  role: resolveRole(row.ULOGA),
-});
-
-const mapPrijava = (row: PrijavaRow): AuthLatestPrijava => ({
-  brojPrijave: row.BROJ_PRIJAVE,
-  datumPrijave: row.DATUM_PRIJAVE ? row.DATUM_PRIJAVE.toISOString() : null,
-  skolskaGodina: row.SKOLSKA_GODINA,
-  statusPrijave: row.STATUS_PRIJAVE,
-  konkursniRok: row.KONKURSNI_ROK,
-  jmbg: row.JMBG,
-  imePrezime: row.IME_PREZIME,
-  sistemskiUpdate: row.SISTEMSKI_UPDATE,
-});
+import type { AuthPrijavaRow, KorisnikRow } from "../../types/modules/authRepository";
+import { mapAuthPrijavaRow, mapKorisnikRow } from "../../utils/modules/authRepository.utils";
 
 export const findKorisnikByUsername = async (username: string): Promise<KorisnikRecord | null> => {
   const result = await executeSql<KorisnikRow>(
@@ -71,7 +20,7 @@ export const findKorisnikByUsername = async (username: string): Promise<Korisnik
   );
 
   const row = result.rows?.[0];
-  return row ? mapKorisnik(row) : null;
+  return row ? mapKorisnikRow(row) : null;
 };
 
 export const findKorisnikByEmail = async (email: string): Promise<KorisnikRecord | null> => {
@@ -91,7 +40,7 @@ export const findKorisnikByEmail = async (email: string): Promise<KorisnikRecord
   );
 
   const row = result.rows?.[0];
-  return row ? mapKorisnik(row) : null;
+  return row ? mapKorisnikRow(row) : null;
 };
 
 const getNextKorisnikId = async (): Promise<number> => {
@@ -164,7 +113,7 @@ export const updateKorisnikLastLogin = async (idKorisnika: number): Promise<void
 export const findLatestPrijavaForKorisnik = async (
   idKorisnika: number,
 ): Promise<AuthLatestPrijava | null> => {
-  const result = await executeSql<PrijavaRow>(
+  const result = await executeSql<AuthPrijavaRow>(
     `
       SELECT
         p.broj_prijave,
@@ -186,5 +135,5 @@ export const findLatestPrijavaForKorisnik = async (
   );
 
   const row = result.rows?.[0];
-  return row ? mapPrijava(row) : null;
+  return row ? mapAuthPrijavaRow(row) : null;
 };

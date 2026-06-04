@@ -16,94 +16,12 @@ import {
   listKonkursiWithStavke,
   updateKonkursStatus,
 } from "./konkurs.repository";
-
-const normalizeStatus = (status: string | undefined): KonkursStatus => {
-  if (!status) {
-    return "Nacrt";
-  }
-
-  if (
-    status === "Nacrt" ||
-    status === "Aktivan" ||
-    status === "Zatvoren" ||
-    status === "Arhiviran"
-  ) {
-    return status;
-  }
-
-  return "Nacrt";
-};
-
-const parseIsoDateStrict = (value: string, fieldLabel: string): Date => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    throw new ApiError(400, "Neispravan datum", `${fieldLabel} mora biti u formatu YYYY-MM-DD.`);
-  }
-
-  const date = new Date(`${value}T00:00:00.000Z`);
-  if (Number.isNaN(date.getTime())) {
-    throw new ApiError(400, "Neispravan datum", `${fieldLabel} nije validan datum.`);
-  }
-
-  return date;
-};
-
-const toSchoolYearLabel = (godinaKonkursa: number): string => String(godinaKonkursa);
-
-const mapRowsToKonkursi = (
-  rows: Awaited<ReturnType<typeof listKonkursiWithStavke>>,
-): KonkursRecord[] => {
-  const byId = new Map<number, KonkursRecord>();
-
-  rows.forEach((row) => {
-    const existing = byId.get(row.ID_KONKURSA);
-
-    if (!existing) {
-      byId.set(row.ID_KONKURSA, {
-        idKonkursa: row.ID_KONKURSA,
-        idFakulteta: row.ID_FAKULTETA,
-        nazivFakulteta: row.NAZIV_FAKULTETA,
-        godinaKonkursa: row.GODINA_KONKURSA,
-        konkursniRok: row.KONKURSNI_ROK,
-        datumOd: row.DATUM_OD.toISOString().slice(0, 10),
-        datumDo: row.DATUM_DO.toISOString().slice(0, 10),
-        status: normalizeStatus(row.STATUS_KONKURSA ?? undefined),
-        stavke:
-          row.ID_STAVKE_KONKURSA == null ||
-          row.ID_PROGRAMA == null ||
-          row.BROJ_DOSTUPNIH_MESTA == null
-            ? []
-            : [
-                {
-                  idStavkeKonkursa: row.ID_STAVKE_KONKURSA,
-                  idKonkursa: row.ID_KONKURSA,
-                  idPrograma: row.ID_PROGRAMA,
-                  nazivPrograma: row.NAZIV_PROGRAMA,
-                  modul: row.MODUL,
-                  brojDostupnihMesta: row.BROJ_DOSTUPNIH_MESTA,
-                },
-              ],
-      });
-      return;
-    }
-
-    if (
-      row.ID_STAVKE_KONKURSA != null &&
-      row.ID_PROGRAMA != null &&
-      row.BROJ_DOSTUPNIH_MESTA != null
-    ) {
-      existing.stavke.push({
-        idStavkeKonkursa: row.ID_STAVKE_KONKURSA,
-        idKonkursa: row.ID_KONKURSA,
-        idPrograma: row.ID_PROGRAMA,
-        nazivPrograma: row.NAZIV_PROGRAMA,
-        modul: row.MODUL,
-        brojDostupnihMesta: row.BROJ_DOSTUPNIH_MESTA,
-      });
-    }
-  });
-
-  return Array.from(byId.values());
-};
+import {
+  mapRowsToKonkursi,
+  normalizeKonkursStatus,
+  parseIsoDateStrict,
+  toSchoolYearLabel,
+} from "../../utils/modules/konkurs.utils";
 
 export const listKonkursiService = async (): Promise<KonkursRecord[]> => {
   const rows = await listKonkursiWithStavke();
@@ -134,7 +52,7 @@ export const createKonkursService = async (
   payload: CreateKonkursInput,
   actorUserId?: number,
 ): Promise<{ idKonkursa: number }> => {
-  const statusKonkursa = normalizeStatus(payload.status);
+  const statusKonkursa = normalizeKonkursStatus(payload.status);
   const godinaKonkursa = Math.trunc(payload.godinaKonkursa);
 
   if (!Number.isFinite(godinaKonkursa) || godinaKonkursa < 1900 || godinaKonkursa > 3000) {
@@ -172,7 +90,7 @@ export const updateKonkursStatusService = async (
   idKonkursa: number,
   status: string,
 ): Promise<void> => {
-  const normalized = normalizeStatus(status);
+  const normalized = normalizeKonkursStatus(status);
   const konkurs = await findKonkursById(idKonkursa);
 
   if (!konkurs) {
@@ -192,7 +110,7 @@ export const validateKonkursForPrijavaService = async (
     throw new ApiError(400, "Konkurs nije pronadjen", "Izabrani konkurs ne postoji.");
   }
 
-  if (normalizeStatus(konkurs.STATUS_KONKURSA ?? undefined) !== "Aktivan") {
+  if (normalizeKonkursStatus(konkurs.STATUS_KONKURSA ?? undefined) !== "Aktivan") {
     throw new ApiError(
       400,
       "Konkurs nije aktivan",

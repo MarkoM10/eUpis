@@ -18,28 +18,10 @@ import {
   saveExamScoreService,
 } from "../upis/upis.service";
 import type { GenerateRankingInput, SaveExamScoreInput } from "../../types/modules/upis";
-
-const parseGodinaKonkursa = (value: unknown): number | undefined => {
-  const raw = Array.isArray(value) ? value[0] : value;
-  if (typeof raw !== "string" || !raw.trim().length) {
-    return undefined;
-  }
-
-  const parsed = Number(raw);
-  if (!Number.isFinite(parsed)) {
-    return undefined;
-  }
-
-  return Math.trunc(parsed);
-};
-
-const toSkolskaGodinaFromKonkursYear = (godinaKonkursa: number | undefined): string | undefined => {
-  if (godinaKonkursa == null || !Number.isFinite(godinaKonkursa)) {
-    return undefined;
-  }
-
-  return String(godinaKonkursa);
-};
+import {
+  parseGodinaKonkursa,
+  toSkolskaGodinaFromKonkursYear,
+} from "../../utils/modules/konkurs.utils";
 
 export const listKonkursiHandler = async (
   _req: Request,

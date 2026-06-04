@@ -2,31 +2,9 @@ import { executeSql } from "../../db/oracle/execute";
 import { getOracleConnection } from "../../db/oracle/pool";
 import { ApiError } from "../../shared/apiError";
 import type { KandidatMutationInput, KandidatRecord } from "../../types/modules/kandidati";
+import type { KandidatRow } from "../../types/modules/kandidatiRepository";
+import { mapKandidatRow, parseKandidatiListQuery } from "../../utils/modules/kandidati.utils";
 import oracledb from "oracledb";
-
-type KandidatRow = {
-  JMBG: string;
-  IME_PREZIME: string;
-  TIP_KANDIDATA: string;
-  SERIJSKI_BROJ: number;
-  EMAIL_VREDNOST: string;
-  ADRESA_ULICA: string;
-  ADRESA_BROJ: number;
-  ADRESA_GRAD: string;
-};
-
-const mapRow = (row: KandidatRow): KandidatRecord => {
-  return {
-    jmbg: row.JMBG,
-    imePrezime: row.IME_PREZIME,
-    tipKandidata: row.TIP_KANDIDATA,
-    serijskiBroj: row.SERIJSKI_BROJ,
-    emailVrednost: row.EMAIL_VREDNOST,
-    adresaUlica: row.ADRESA_ULICA,
-    adresaBroj: row.ADRESA_BROJ,
-    adresaGrad: row.ADRESA_GRAD,
-  };
-};
 
 export const listKandidati = async (
   query: Record<string, unknown>,
@@ -35,35 +13,8 @@ export const listKandidati = async (
   page: number;
   pageSize: number;
 }> => {
-  const pageRaw = typeof query.page === "string" ? Number(query.page) : 1;
-  const page = Number.isInteger(pageRaw) && pageRaw > 0 ? pageRaw : 1;
-  const pageSizeRaw = typeof query.pageSize === "string" ? Number(query.pageSize) : 20;
-  const pageSize =
-    Number.isInteger(pageSizeRaw) && pageSizeRaw > 0 ? Math.min(pageSizeRaw, 100) : 20;
-  const offset = (page - 1) * pageSize;
-
-  const search =
-    typeof query.search === "string" && query.search.trim() ? `%${query.search.trim()}%` : null;
-  const tipKandidata =
-    typeof query.tip_kandidata === "string" && query.tip_kandidata.trim()
-      ? query.tip_kandidata.trim()
-      : null;
-
-  const sortByInput = typeof query.sortBy === "string" ? query.sortBy.trim() : "";
-  const sortDirectionInput =
-    typeof query.sortDirection === "string" ? query.sortDirection.trim().toLowerCase() : "asc";
-
-  const allowedSortColumns = ["jmbg", "ime_prezime", "tip_kandidata", "serijski_broj"];
-  if (sortByInput && !allowedSortColumns.includes(sortByInput)) {
-    throw new ApiError(
-      400,
-      "Neispravan parametar",
-      `sortBy nije dozvoljen. Dozvoljene vrednosti: ${allowedSortColumns.join(", ")}.`,
-    );
-  }
-
-  const sortBy = sortByInput || "ime_prezime";
-  const sortDirection = sortDirectionInput === "desc" ? "desc" : "asc";
+  const { page, pageSize, offset, search, tipKandidata, sortBy, sortDirection } =
+    parseKandidatiListQuery(query);
 
   const result = await executeSql<KandidatRow>(
     `
@@ -102,7 +53,7 @@ export const listKandidati = async (
   );
 
   return {
-    rows: (result.rows ?? []).map(mapRow),
+    rows: (result.rows ?? []).map(mapKandidatRow),
     page,
     pageSize,
   };
@@ -137,7 +88,7 @@ export const findKandidatByJmbg = async (jmbg: string): Promise<KandidatRecord |
   );
 
   const row = result.rows?.[0];
-  return row ? mapRow(row) : null;
+  return row ? mapKandidatRow(row) : null;
 };
 
 export const getNextKandidatSerijskiBroj = async (): Promise<number> => {

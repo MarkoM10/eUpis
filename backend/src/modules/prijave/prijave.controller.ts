@@ -1,7 +1,6 @@
 import { type NextFunction, type Request, type Response } from "express";
 import { ok, okList } from "../../shared/httpResponse";
 import type {
-  PrijavaKey,
   PrijavaMutationInput,
   PrijavaStatusUpdateInput,
   StudentKandidatSetupInput,
@@ -15,20 +14,7 @@ import {
   updatePrijavaService,
   updatePrijavaStatusService,
 } from "./prijave.service";
-
-const getKey = (req: Request): PrijavaKey => {
-  const brojPrijaveRaw = Array.isArray(req.params.brojPrijave)
-    ? req.params.brojPrijave[0]
-    : req.params.brojPrijave;
-  const skolskaGodinaRaw = Array.isArray(req.params.skolskaGodina)
-    ? req.params.skolskaGodina[0]
-    : req.params.skolskaGodina;
-
-  return {
-    brojPrijave: Number(brojPrijaveRaw),
-    skolskaGodina: skolskaGodinaRaw,
-  };
-};
+import { getPrijavaKeyFromRequest } from "../../utils/modules/prijave.utils";
 
 export const listPrijaveHandler = async (
   req: Request,
@@ -49,7 +35,7 @@ export const getPrijavaHandler = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const result = await getPrijavaService(getKey(req));
+    const result = await getPrijavaService(getPrijavaKeyFromRequest(req));
     res.json(ok("Prijava je uspesno ucitana.", result));
   } catch (error) {
     next(error);
@@ -94,10 +80,10 @@ export const updatePrijavaHandler = async (
 ): Promise<void> => {
   try {
     console.log("[Prijave] PUT /api/prijave/:brojPrijave/:skolskaGodina", {
-      key: getKey(req),
+      key: getPrijavaKeyFromRequest(req),
       bodyKeys: Object.keys((req.body as Record<string, unknown>) ?? {}),
     });
-    await updatePrijavaService(getKey(req), req.body as PrijavaMutationInput);
+    await updatePrijavaService(getPrijavaKeyFromRequest(req), req.body as PrijavaMutationInput);
     res.json(ok("Prijava je uspesno azurirana.", { updated: true }));
   } catch (error) {
     next(error);
@@ -111,10 +97,13 @@ export const updatePrijavaStatusHandler = async (
 ): Promise<void> => {
   try {
     console.log("[Prijave] PUT /api/prijave/:brojPrijave/:skolskaGodina/status", {
-      key: getKey(req),
+      key: getPrijavaKeyFromRequest(req),
       bodyKeys: Object.keys((req.body as Record<string, unknown>) ?? {}),
     });
-    await updatePrijavaStatusService(getKey(req), req.body as PrijavaStatusUpdateInput);
+    await updatePrijavaStatusService(
+      getPrijavaKeyFromRequest(req),
+      req.body as PrijavaStatusUpdateInput,
+    );
     res.json(ok("Status prijave je uspesno azuriran.", { updated: true }));
   } catch (error) {
     next(error);
@@ -127,7 +116,7 @@ export const deletePrijavaHandler = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    await deletePrijavaService(getKey(req));
+    await deletePrijavaService(getPrijavaKeyFromRequest(req));
     res.json(ok("Prijava je uspesno obrisana.", { deleted: true }));
   } catch (error) {
     next(error);

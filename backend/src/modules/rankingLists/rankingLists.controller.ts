@@ -8,20 +8,6 @@ import {
 } from "./rankingLists.service";
 import type { RankingListStudyProgramUpdateInput } from "../../types/modules/upis";
 
-const toNumberOrNull = (value: unknown): number | null => {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  if (!trimmed.length) {
-    return null;
-  }
-
-  const parsed = Number(trimmed);
-  return Number.isNaN(parsed) ? null : parsed;
-};
-
 export const listRankingListsHandler = async (
   req: Request,
   res: Response,
@@ -30,19 +16,11 @@ export const listRankingListsHandler = async (
   try {
     const query = req.query as Record<string, unknown>;
 
-    const idKonkursa = toNumberOrNull(query.idKonkursa);
-    const idPrograma = toNumberOrNull(query.idPrograma);
     const skolskaGodina = typeof query.skolskaGodina === "string" ? query.skolskaGodina : undefined;
     const nazivKonkursa = typeof query.nazivKonkursa === "string" ? query.nazivKonkursa : undefined;
     const nazivPrograma = typeof query.nazivPrograma === "string" ? query.nazivPrograma : undefined;
 
-    const rows = await listRankingListsService(
-      idKonkursa ?? undefined,
-      idPrograma ?? undefined,
-      skolskaGodina,
-      nazivKonkursa,
-      nazivPrograma,
-    );
+    const rows = await listRankingListsService(skolskaGodina, nazivKonkursa, nazivPrograma);
 
     res.json(ok("Rang liste su uspešno učitane.", { rows }));
   } catch (error) {

@@ -54,9 +54,7 @@ export default function KandidatiPage(): ReactElement {
         <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-300 bg-white p-6">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">Kandidati</h1>
-            <p className="text-sm text-slate-600">
-              Pregled kandidata i odlazak na detalje kandidata
-            </p>
+            <p className="text-sm text-slate-600">Pregled kandidata i detalja o njima</p>
           </div>
           <Link
             to="/dashboard"

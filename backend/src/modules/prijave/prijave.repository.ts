@@ -6,46 +6,8 @@ import type {
   PrijavaRecord,
   PrijavaStatusUpdateInput,
 } from "../../types/modules/prijave";
-
-type PrijavaRow = {
-  BROJ_PRIJAVE: number;
-  DATUM_PRIJAVE: Date | null;
-  SKOLSKA_GODINA: string;
-  ID_KONKURSA: number | null;
-  ID_KORISNIKA: number | null;
-  ID_PROGRAMA: number | null;
-  STATUS_PRIJAVE: string | null;
-  KONKURSNI_ROK: string | null;
-  JMBG: string | null;
-  IME_PREZIME: string | null;
-  SISTEMSKI_UPDATE: string | null;
-};
-
-const toDateOnlyString = (value: Date | null): string | null => {
-  if (!value) {
-    return null;
-  }
-
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, "0");
-  const day = String(value.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
-
-const mapRow = (row: PrijavaRow): PrijavaRecord => ({
-  brojPrijave: row.BROJ_PRIJAVE,
-  datumPrijave: toDateOnlyString(row.DATUM_PRIJAVE),
-  skolskaGodina: row.SKOLSKA_GODINA,
-  idKonkursa: row.ID_KONKURSA,
-  idKorisnika: row.ID_KORISNIKA,
-  idPrograma: row.ID_PROGRAMA,
-  statusPrijave: row.STATUS_PRIJAVE,
-  konkursniRok: row.KONKURSNI_ROK,
-  jmbg: row.JMBG,
-  imePrezime: row.IME_PREZIME,
-  sistemskiUpdate: row.SISTEMSKI_UPDATE,
-});
+import type { PrijavaRow } from "../../types/modules/prijaveRepository";
+import { mapPrijavaRow, parsePrijaveListQuery } from "../../utils/modules/prijave.utils";
 
 const resolveBrojPrijave = async (): Promise<number> => {
   const result = await executeSql<{ NEXT_BROJ_PRIJAVE: number }>(
@@ -62,51 +24,18 @@ export const listPrijave = async (
   page: number;
   pageSize: number;
 }> => {
-  const pageRaw = typeof query.page === "string" ? Number(query.page) : 1;
-  const page = Number.isInteger(pageRaw) && pageRaw > 0 ? pageRaw : 1;
-  const pageSizeRaw = typeof query.pageSize === "string" ? Number(query.pageSize) : 20;
-  const pageSize =
-    Number.isInteger(pageSizeRaw) && pageSizeRaw > 0 ? Math.min(pageSizeRaw, 100) : 20;
-  const offset = (page - 1) * pageSize;
-
-  const search =
-    typeof query.search === "string" && query.search.trim() ? `%${query.search.trim()}%` : null;
-  const statusPrijave =
-    typeof query.status_prijave === "string" && query.status_prijave.trim()
-      ? query.status_prijave.trim()
-      : null;
-  const skolskaGodina =
-    typeof query.skolska_godina === "string" && query.skolska_godina.trim()
-      ? query.skolska_godina.trim()
-      : null;
-  const konkursniRok =
-    typeof query.konkursni_rok === "string" && query.konkursni_rok.trim()
-      ? query.konkursni_rok.trim()
-      : null;
-  const partition =
-    typeof query.partition === "string" && query.partition.trim() ? query.partition.trim() : null;
-
-  const sortByInput = typeof query.sortBy === "string" ? query.sortBy.trim() : "";
-  const sortDirectionInput =
-    typeof query.sortDirection === "string" ? query.sortDirection.trim().toLowerCase() : "asc";
-  const allowedSortColumns = [
-    "broj_prijave",
-    "datum_prijave",
-    "skolska_godina",
-    "status_prijave",
-    "ime_prezime",
-  ];
-
-  if (sortByInput && !allowedSortColumns.includes(sortByInput)) {
-    throw new ApiError(
-      400,
-      "Neispravan parametar",
-      `sortBy nije dozvoljen. Dozvoljene vrednosti: ${allowedSortColumns.join(", ")}.`,
-    );
-  }
-
-  const sortBy = sortByInput || "broj_prijave";
-  const sortDirection = sortDirectionInput === "desc" ? "desc" : "asc";
+  const {
+    page,
+    pageSize,
+    offset,
+    search,
+    statusPrijave,
+    skolskaGodina,
+    konkursniRok,
+    partition,
+    sortBy,
+    sortDirection,
+  } = parsePrijaveListQuery(query);
 
   const result = await executeSql<PrijavaRow>(
     `
@@ -167,7 +96,7 @@ export const listPrijave = async (
   );
 
   return {
-    rows: (result.rows ?? []).map(mapRow),
+    rows: (result.rows ?? []).map(mapPrijavaRow),
     page,
     pageSize,
   };
@@ -203,7 +132,7 @@ export const getPrijavaByKey = async (key: PrijavaKey): Promise<PrijavaRecord> =
     throw new ApiError(404, "Prijava nije pronadjena", "Ne postoji trazena prijava.");
   }
 
-  return mapRow(row);
+  return mapPrijavaRow(row);
 };
 
 export const insertPrijava = async (input: PrijavaMutationInput): Promise<PrijavaKey> => {

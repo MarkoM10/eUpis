@@ -1,7 +1,4 @@
-type OracleLikeError = Error & {
-  errorNum?: number;
-  offset?: number;
-};
+import type { OracleLikeError } from "../../types/db/oracle";
 
 const hasOracleShape = (error: unknown): error is OracleLikeError => {
   return error instanceof Error && "errorNum" in error;

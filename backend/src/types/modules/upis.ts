@@ -39,6 +39,7 @@ export interface RankingListSummary {
   skolskaGodina: string | null;
   brojMesta: number | null;
   ukupnoKandidata: number | null;
+  nazivFakulteta: string | null;
 }
 
 export interface RankingItem {

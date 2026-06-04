@@ -195,10 +195,15 @@ export default function RankingListDetailsPage(): ReactElement {
               <h1 className="text-2xl font-bold text-slate-900">
                 Detalji Rang Liste {state.rankingList.idRangListe}
               </h1>
-              <p className="mt-1 text-sm text-slate-600">
-                {state.rankingList.nazivPrograma}
-                {state.rankingList.modul && ` (${state.rankingList.modul})`}
-              </p>
+              <div className="mt-2 space-y-1">
+                <p className="text-sm text-slate-600">
+                  {state.rankingList.nazivPrograma}
+                  {state.rankingList.modul && ` (${state.rankingList.modul})`}
+                </p>
+                {state.rankingList.nazivFakulteta && (
+                  <p className="text-sm text-slate-500">{state.rankingList.nazivFakulteta}</p>
+                )}
+              </div>
             </div>
             <div className="flex gap-2">
               <Link

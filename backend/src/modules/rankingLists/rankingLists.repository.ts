@@ -1,59 +1,9 @@
 import { executeSql } from "../../db/oracle/execute";
 import type { RankingListSummary, RankingItem } from "../../types/modules/upis";
-
-type RankingListRow = {
-  ID_RANG_LISTE: number;
-  ID_KONKURSA: number | null;
-  NAZIV_KONKURSA: string | null;
-  ID_PROGRAMA: number | null;
-  NAZIV_PROGRAMA: string | null;
-  MODUL: string | null;
-  STUDIJSKI_PROGRAM: string | null;
-  SKOLSKA_GODINA: string | null;
-  BROJ_MESTA: number | null;
-  UKUPNO_KANDIDATA: number | null;
-};
-
-type RankingItemRow = {
-  ID_STAVKE: number;
-  ID_RANG_LISTE: number | null;
-  BROJ_PRIJAVE: number | null;
-  ID_PROGRAMA: number | null;
-  IME_PREZIME: string | null;
-  BROJ_POENA: number | null;
-  RANG_MESTO: number | null;
-  STATUS: string | null;
-  STUDIJSKI_PROGRAM: string | null;
-};
-
-const mapRankingList = (row: RankingListRow): RankingListSummary => ({
-  idRangListe: row.ID_RANG_LISTE,
-  idKonkursa: row.ID_KONKURSA,
-  nazivKonkursa: row.NAZIV_KONKURSA,
-  idPrograma: row.ID_PROGRAMA,
-  nazivPrograma: row.NAZIV_PROGRAMA,
-  modul: row.MODUL,
-  studijskiProgram: row.STUDIJSKI_PROGRAM,
-  skolskaGodina: row.SKOLSKA_GODINA,
-  brojMesta: row.BROJ_MESTA,
-  ukupnoKandidata: row.UKUPNO_KANDIDATA,
-});
-
-const mapRankingItem = (row: RankingItemRow): RankingItem => ({
-  idStavke: row.ID_STAVKE,
-  idRangListe: row.ID_RANG_LISTE,
-  brojPrijave: row.BROJ_PRIJAVE,
-  idPrograma: row.ID_PROGRAMA,
-  imePrezime: row.IME_PREZIME,
-  brojPoena: row.BROJ_POENA,
-  rangMesto: row.RANG_MESTO,
-  status: row.STATUS,
-  studijskiProgram: row.STUDIJSKI_PROGRAM,
-});
+import type { RankingItemRow, RankingListRow } from "../../types/modules/rankingListsRepository";
+import { mapRankingItemRow, mapRankingListRow } from "../../utils/modules/rankingLists.utils";
 
 export const listRankingLists = async (
-  idKonkursa?: number,
-  idPrograma?: number,
   skolskaGodina?: string,
   nazivKonkursa?: string,
   nazivPrograma?: string,
@@ -67,7 +17,7 @@ export const listRankingLists = async (
           COALESCE(k.konkursni_rok, '') ||
           CASE
             WHEN k.godina_konkursa IS NOT NULL
-              THEN ' ' || TO_CHAR(k.godina_konkursa)
+              THEN ' ' || TO_CHAR(k.godina_konkursa) || '/' || TO_CHAR(k.godina_konkursa + 1)
             ELSE ''
           END ||
           CASE WHEN f.naziv_fakulteta IS NOT NULL THEN ' - ' || f.naziv_fakulteta ELSE '' END
@@ -78,14 +28,13 @@ export const listRankingLists = async (
         kr.studijski_program,
         kr.skolska_godina,
         kr.broj_mesta,
-        kr.ukupno_kandidata
+        kr.ukupno_kandidata,
+        f.naziv_fakulteta
       FROM KonacnaRangLista kr
       LEFT JOIN KonkursZaMasterStudije k ON k.id_konkursa = kr.id_konkursa
       LEFT JOIN Fakultet f ON f.id_fakulteta = k.id_fakulteta
       LEFT JOIN StudijskiProgram_VIEW sp ON sp.id_programa = kr.id_programa
-      WHERE (:idKonkursa IS NULL OR kr.id_konkursa = :idKonkursa)
-        AND (:idPrograma IS NULL OR kr.id_programa = :idPrograma)
-        AND (:skolskaGodina IS NULL OR kr.skolska_godina = :skolskaGodina)
+      WHERE (:skolskaGodina IS NULL OR kr.skolska_godina = :skolskaGodina)
         AND (
           :nazivKonkursa IS NULL
           OR LOWER(
@@ -93,7 +42,7 @@ export const listRankingLists = async (
               COALESCE(k.konkursni_rok, '') ||
               CASE
                 WHEN k.godina_konkursa IS NOT NULL
-                  THEN ' ' || TO_CHAR(k.godina_konkursa)
+                  THEN ' ' || TO_CHAR(k.godina_konkursa) || '/' || TO_CHAR(k.godina_konkursa + 1)
                 ELSE ''
               END ||
               CASE WHEN f.naziv_fakulteta IS NOT NULL THEN ' - ' || f.naziv_fakulteta ELSE '' END
@@ -104,15 +53,13 @@ export const listRankingLists = async (
       ORDER BY kr.id_rang_liste DESC
     `,
     {
-      idKonkursa: idKonkursa ?? null,
-      idPrograma: idPrograma ?? null,
       skolskaGodina: skolskaGodina ?? null,
       nazivKonkursa: nazivKonkursa ?? null,
       nazivPrograma: nazivPrograma ?? null,
     },
   );
 
-  return (result.rows ?? []).map(mapRankingList);
+  return (result.rows ?? []).map(mapRankingListRow);
 };
 
 export const getRankingListById = async (
@@ -127,7 +74,7 @@ export const getRankingListById = async (
           COALESCE(k.konkursni_rok, '') ||
           CASE
             WHEN k.godina_konkursa IS NOT NULL
-              THEN ' ' || TO_CHAR(k.godina_konkursa)
+              THEN ' ' || TO_CHAR(k.godina_konkursa) || '/' || TO_CHAR(k.godina_konkursa + 1)
             ELSE ''
           END ||
           CASE WHEN f.naziv_fakulteta IS NOT NULL THEN ' - ' || f.naziv_fakulteta ELSE '' END
@@ -138,7 +85,8 @@ export const getRankingListById = async (
         kr.studijski_program,
         kr.skolska_godina,
         kr.broj_mesta,
-        kr.ukupno_kandidata
+        kr.ukupno_kandidata,
+        f.naziv_fakulteta
       FROM KonacnaRangLista kr
       LEFT JOIN KonkursZaMasterStudije k ON k.id_konkursa = kr.id_konkursa
       LEFT JOIN Fakultet f ON f.id_fakulteta = k.id_fakulteta
@@ -150,7 +98,7 @@ export const getRankingListById = async (
   );
 
   const row = result.rows?.[0];
-  return row ? mapRankingList(row) : null;
+  return row ? mapRankingListRow(row) : null;
 };
 
 export const listRankingItemsByListId = async (idRangListe: number): Promise<RankingItem[]> => {
@@ -173,7 +121,7 @@ export const listRankingItemsByListId = async (idRangListe: number): Promise<Ran
     { idRangListe },
   );
 
-  return (result.rows ?? []).map(mapRankingItem);
+  return (result.rows ?? []).map(mapRankingItemRow);
 };
 
 export const updateRankingListStudyProgram = async (

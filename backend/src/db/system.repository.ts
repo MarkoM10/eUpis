@@ -1,9 +1,5 @@
 import { executeSql } from "./oracle/execute";
-
-type FakultetRow = {
-  ID_FAKULTETA: number;
-  NAZIV_FAKULTETA: string;
-};
+import type { FakultetRow } from "../types/db/systemRepository";
 
 export interface FakultetRecord {
   idFakulteta: number;
