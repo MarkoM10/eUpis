@@ -36,6 +36,72 @@ It is designed around role-based workflows for **admin** and **student** users.
 - Upload/download required documents (where applicable in workflow).
 - Continue to enrollment steps when approved.
 
+## Application Walkthrough (Screenshots)
+
+The screenshots below follow the typical usage flow of the app, from authentication and student submission to admin processing, ranking, and enrollment finalization.
+
+### 1. Authentication
+
+Login screen:
+
+![Login](docs/screenshots/prijava.png)
+
+Registration screen:
+
+![Registration](docs/screenshots/registracija.png)
+
+### 2. Student Application Flow
+
+Step 1 - candidate data:
+
+![Create Candidate](docs/screenshots/kreiranjePrijave.png)
+
+Step 2 - application data and document upload:
+
+![Create Application](docs/screenshots/kreiranjePrijave2.png)
+
+Submitted application status:
+
+![Submitted Application](docs/screenshots/poslataPrijava.png)
+
+### 3. Admin Dashboard and Core Modules
+
+Admin dashboard:
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+Candidate management:
+
+![Candidates](docs/screenshots/kandidati.png)
+
+Application management:
+
+![Applications](docs/screenshots/prijave.png)
+
+### 4. Competition and Ranking Workflow
+
+Competition management:
+
+![Konkurs](docs/screenshots/konkurs.png)
+
+Competition workflow (points, ranking, finalization steps):
+
+![Konkurs Workflow](docs/screenshots/konkursniWorkflow.png)
+
+Final ranking lists overview:
+
+![Ranking Lists](docs/screenshots/rangliste.png)
+
+Ranking list details:
+
+![Ranking List Details](docs/screenshots/ranglista.png)
+
+### 5. Enrollment Finalization (Student View)
+
+Finalized enrollment status and contract download:
+
+![Finalized Enrollment](docs/screenshots/finalizovanUpis.png)
+
 ## Tech Stack
 
 ### Backend
