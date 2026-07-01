@@ -42,10 +42,6 @@ The screenshots below follow the typical usage flow of the app, from authenticat
 
 ### 1. Authentication
 
-Login screen:
-
-![Login](docs/screenshots/prijava.png)
-
 Registration screen:
 
 ![Registration](docs/screenshots/registracija.png)
@@ -77,6 +73,10 @@ Candidate management:
 Application management:
 
 ![Applications](docs/screenshots/prijave.png)
+
+Single application overview:
+
+![Application](docs/screenshots/prijava.png)
 
 ### 4. Competition and Ranking Workflow
 
